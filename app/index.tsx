@@ -1,7 +1,7 @@
 // app/index.tsx
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { fetchData, Item } from '../firebaseService';
+import { fetchData, Item } from '../lib/firebaseService';
 
 export default function HomeScreen() {
     const [items, setItems] = useState<Item[]>([]);
