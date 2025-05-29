@@ -1,23 +1,19 @@
 // app/index.tsx
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { fetchData, Item } from '../lib/firebaseService';
+import { auth } from '../firebaseConfig';
 
 export default function HomeScreen() {
-    const [items, setItems] = useState<Item[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchData()
-            .then(setItems)
-            .catch((error) => console.error('Fehler beim Laden:', error));
-    }, []);
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user) setUserEmail(user.email);
+  }, []);
 
-    return (
-        <View style={{ padding: 20 }}>
-            <Text>🚀 App läuft!</Text>
-            {items.map((item: Item) => (
-                <Text key={item.id}>{JSON.stringify(item)}</Text>
-            ))}
-        </View>
-    );
+  return (
+    <View style={{ padding: 20 }}>
+      <Text>👤 Eingeloggt als: {userEmail || 'Unbekannt'}</Text>
+    </View>
+  );
 }

@@ -1,43 +1,26 @@
 {
   "name": "mahlzeitapp",
   "version": "1.0.0",
-  "author": "Charles Stover <with-router@charlesstover.com>",
-  "bugs": {
-    "email": "with-router@charlesstover.com",
-    "url": "https://github.com/CharlesStover/with-router/issues"
-  },
-  "directories": {
-    "lib": "src"
-  },
-  "files": [
-    "index.js",
-    "package.json"
-  ],
-  "homepage": "https://github.com/CharlesStover/with-router#readme",
-  "license": "MIT",
+  "private": true,
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
-    "dev": "set NODE_ENV=development&& webpack",
-    "prepublishOnly": "webpack",
-    "test": "echo \"No tests exist.\" && exit 0"
+    "start": "expo start --clear",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.2",
-    "expo-router": "^5.0.7",
-    "firebase": "^11.8.1"
+    "expo": "~53.0.0",
+    "expo-router": "^3.4.10",
+    "firebase": "9.17.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.73.6",
+    "@react-native-async-storage/async-storage": "1.21.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.1.2",
-    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
-    "@babel/preset-env": "^7.1.0",
-    "@babel/preset-react": "^7.0.0",
-    "@types/react": "~19.0.10",
-    "babel-core": "7.0.0-bridge.0",
-    "babel-loader": "^8.0.0-beta.6",
-    "react": "^19.0.0",
-    "react-router": "^4.3.1",
-    "typescript": "~5.8.3"
-  },
-  "private": true
+    "@babel/core": "^7.24.0",
+    "typescript": "^5.2.0",
+    "@types/react": "~19.0.10"
+  }
 }

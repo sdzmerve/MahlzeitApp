@@ -1,9 +1,9 @@
-import { View, Text } from "react-native";
+import { View, Text } from 'react-native';
 
 export default function AuthScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>✅ Temporärer Auth-Screen</Text>
-    </View>
-  );
+    return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text> Auth-Screen funktioniert</Text>
+        </View>
+    )
 }
