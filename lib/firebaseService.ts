@@ -2,7 +2,7 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
-export async function fetchData() {
+export async function fetchData(): Promise<Item[]>  {
   const querySnapshot = await getDocs(collection(db, 'deineSammlung'));
   const data: any[] = [];
   querySnapshot.forEach((doc) => {

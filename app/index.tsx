@@ -14,7 +14,8 @@ export default function HomeScreen() {
 
     return (
         <View style={{ padding: 20 }}>
-            {items.map((item) => (
+            <Text>🚀 App läuft!</Text>
+            {items.map((item: Item) => (
                 <Text key={item.id}>{JSON.stringify(item)}</Text>
             ))}
         </View>
