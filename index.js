@@ -1,4 +1,1 @@
-import { registerRootComponent } from 'expo';
-import App from './app/index.tsx'; 
-
-registerRootComponent(App);
+import 'expo-router/entry';

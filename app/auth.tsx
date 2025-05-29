@@ -1,9 +1,10 @@
+// app/auth.tsx
 import { View, Text } from 'react-native';
 
 export default function AuthScreen() {
-    return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text> Auth-Screen funktioniert</Text>
-        </View>
-    )
+  return (
+    <View>
+      <Text>Auth funktioniert</Text>
+    </View>
+  );
 }

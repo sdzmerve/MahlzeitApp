@@ -1,15 +1,19 @@
+// app/login.tsx
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, Alert } from 'react-native';
+import { View, Text, TextInput, Button, Alert } from 'react-native';
 import { login } from '../lib/authService';
+import { useRouter } from 'expo-router';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const router = useRouter();
 
   const handleLogin = async () => {
     try {
       await login(email, password);
       Alert.alert('Erfolg', 'Login erfolgreich');
+      router.replace('/');
     } catch (error: any) {
       Alert.alert('Fehler', error.message);
     }
@@ -25,7 +29,6 @@ export default function LoginScreen() {
         onChangeText={setEmail}
         style={{ borderBottomWidth: 1, marginBottom: 10 }}
       />
-
       <Text>Passwort:</Text>
       <TextInput
         secureTextEntry
@@ -33,7 +36,6 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         style={{ borderBottomWidth: 1, marginBottom: 20 }}
       />
-
       <Button title="Login" onPress={handleLogin} />
     </View>
   );
