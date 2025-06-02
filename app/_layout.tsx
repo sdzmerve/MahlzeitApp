@@ -2,5 +2,5 @@
 import { Stack } from 'expo-router';
 
 export default function Layout() {
-  return <Stack initialRouteName="login" />;
+  return <Stack initialRouteName="/login" />;
 }
