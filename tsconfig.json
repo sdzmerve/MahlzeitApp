@@ -1,4 +1,5 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "target": "ES2021",
     "module": "ESNext",
@@ -10,15 +11,20 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./app/*"
+      ]
+    }
   },
   "include": [
     "app",
     "lib",
     "firebaseConfig.ts"
-, "auth/index.tsx"  ],
+  ],
   "exclude": [
     "node_modules"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }
