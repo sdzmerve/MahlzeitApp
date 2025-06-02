@@ -1,4 +1,8 @@
 {
-  "name": "MahlzeitApp",
-  "slug": "MahlzeitApp"
+  "expo": {
+    "name": "MahlzeitApp",
+    "slug": "mahlzeitapp",
+    "scheme": "mahlzeitapp"
+  }
+
 }

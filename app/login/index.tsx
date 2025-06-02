@@ -1,7 +1,6 @@
-// app/login.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
-import { login } from '../lib/authService';
+import { login } from '../../lib/authService';
 import { useRouter } from 'expo-router';
 
 export default function LoginScreen() {
@@ -13,7 +12,7 @@ export default function LoginScreen() {
     try {
       await login(email, password);
       Alert.alert('Erfolg', 'Login erfolgreich');
-      router.replace('/');
+      router.replace('auth');
     } catch (error: any) {
       Alert.alert('Fehler', error.message);
     }
