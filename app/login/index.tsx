@@ -1,41 +1,27 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
-import { login } from '../../lib/authService';
-import { useRouter } from 'expo-router';
+import { supabase } from '../../lib/supabaseClient';
+import { useState } from 'react';
+import { View, TextInput, Button, Text } from 'react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
+  const [message, setMessage] = useState('');
 
   const handleLogin = async () => {
-    try {
-      await login(email, password);
-      Alert.alert('Erfolg', 'Login erfolgreich');
-      router.replace('auth');
-    } catch (error: any) {
-      Alert.alert('Fehler', error.message);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setMessage('Erfolgreich eingeloggt!');
     }
   };
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Email:</Text>
-      <TextInput
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        style={{ borderBottomWidth: 1, marginBottom: 10 }}
-      />
-      <Text>Passwort:</Text>
-      <TextInput
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={{ borderBottomWidth: 1, marginBottom: 20 }}
-      />
+    <View>
+      <TextInput placeholder="E-Mail" onChangeText={setEmail} value={email} />
+      <TextInput placeholder="Passwort" secureTextEntry onChangeText={setPassword} value={password} />
       <Button title="Login" onPress={handleLogin} />
+      <Text>{message}</Text>
     </View>
   );
 }
