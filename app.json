@@ -2,11 +2,6 @@
   "expo": {
     "name": "MahlzeitApp",
     "slug": "mahlzeitapp",
-    "scheme": "mahlzeitapp",
-    "extra": {
-      "eas": {
-        "projectId": "dein-projekt-id"
-      }
-    }
+    "scheme": "mahlzeitapp"
   }
 }
