@@ -3,21 +3,28 @@ import { useState } from 'react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { colors } from '@/styles/colors';
-import { login } from '@/lib/auth';
+import { register } from '@/lib/auth';
 import { router } from 'expo-router';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordRepeat, setPasswordRepeat] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleLogin = async () => {
+    
+  const handleRegister = async () => {
     setLoading(true);
+    if (password !== passwordRepeat) {
+        Alert.alert('Fehler', 'Die Passwörter stimmen nicht überein.');
+        setLoading(false);
+        return;
+    }
     try {
-      await login(email, password);
-      router.replace('/home'); // Weiterleitung nach Login
+      await register(email, password);
+      Alert.alert('Erfolg', 'Bitte bestätige deine E-Mail.');
+      router.replace('/auth'); // Zurück zum Login
     } catch (error: any) {
-      Alert.alert('Login fehlgeschlagen', error.message);
+      Alert.alert('Registrierung fehlgeschlagen', error.message);
     } finally {
       setLoading(false);
     }
@@ -26,7 +33,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Image source={require('@/assets/icon.png')} style={styles.logo} />
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Registrieren</Text>
 
       <Input
         placeholder="E-Mail"
@@ -40,10 +47,18 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
-      <Button title="Login" onPress={handleLogin} loading={loading} />
 
-      <TouchableOpacity onPress={() => router.push('/auth/register')}>
-        <Text style={styles.link}>Noch keinen Account? Registrieren</Text>
+      <Input
+        placeholder="Passwort wiederholen"
+        secureTextEntry
+        value={passwordRepeat}
+        onChangeText={setPasswordRepeat}
+      />
+
+      <Button title="Registrieren" onPress={handleRegister} loading={loading} />
+
+      <TouchableOpacity onPress={() => router.push('/auth')}>
+        <Text style={styles.link}>Bereits registriert? Zum Login</Text>
       </TouchableOpacity>
     </View>
   );
