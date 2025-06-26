@@ -1,5 +1,6 @@
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors } from '@/styles/colors';
+import { colors } from '@/styles/colors'
+import { sharedStyles } from '@/styles/sharedStyles'
 
 type Props = {
   title: string;

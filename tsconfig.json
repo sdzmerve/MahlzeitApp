@@ -13,11 +13,11 @@
     "isolatedModules": true,
     "noEmit": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
+    "paths":
+      {
+      "@/*": ["./*"]
     }
+    
   },
   "include": [
     "app",

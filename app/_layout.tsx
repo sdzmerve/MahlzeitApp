@@ -1,6 +1,6 @@
 // app/_layout.tsx
 import { Stack } from 'expo-router';
 
-export default function Layout() {
-  return <Stack initialRouteName="index" />;
+export default function RootLayout() {
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
