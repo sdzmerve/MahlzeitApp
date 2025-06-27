@@ -17,6 +17,15 @@ import { supabase } from '@/lib/supabaseClient';
 import StarRating from '@/components/StarRating';
 import { colors } from '@/styles/colors';
 
+// 🔷 Typdefinitionen
+type RawMenu = {
+  Menue_id: string;
+  HatSalad?: boolean;
+  istVegan?: boolean;
+  Bild?: string;
+  Gericht?: { Gericht_Name: string; Beschreibung: string } | { Gericht_Name: string; Beschreibung: string }[];
+  MenueBewertung?: { Rating: number }[];
+};
 
 type Menu = {
   id: string;
@@ -42,7 +51,7 @@ export default function HomeScreen() {
     router.replace('/auth');
   };
 
-  // 📌 Mensen laden
+  // 📍 Mensen laden
   useEffect(() => {
     const fetchMensen = async () => {
       const { data, error } = await supabase
@@ -57,13 +66,16 @@ export default function HomeScreen() {
           name: m.Mensa_name,
         }));
         setMensen(formatted);
+        if (formatted.length > 0) {
+          setSelectedMensa(formatted[0].name); // Standardauswahl
+        }
       }
     };
 
     fetchMensen();
   }, []);
 
-  // 📌 Menüs laden (später kannst du hier nach `selectedMensa` filtern)
+  // 📌 Menüs laden
   useEffect(() => {
     const fetchMenus = async () => {
       setLoadingMenus(true);
@@ -91,17 +103,21 @@ export default function HomeScreen() {
         return;
       }
 
-      const formatted = data.map((menu) => {
+      const rawMenus = data as RawMenu[];
+
+      const formatted = rawMenus.map((menu) => {
         const ratings = menu.MenueBewertung || [];
         const average =
           ratings.length > 0
             ? ratings.reduce((sum, r) => sum + r.Rating, 0) / ratings.length
             : 0;
 
+        const gericht = Array.isArray(menu.Gericht) ? menu.Gericht[0] : menu.Gericht;
+
         return {
           id: menu.Menue_id,
-          title: menu.Gericht_id?.Gericht_Name ?? 'Unbekannt',
-          description: menu.Gericht?.Beschreibung ?? '',
+          title: gericht?.Gericht_Name ?? 'Unbekannt',
+          description: gericht?.Beschreibung ?? '',
           image: menu.Bild,
           isVegan: menu.istVegan,
           average_rating: Math.round(average),
@@ -113,7 +129,7 @@ export default function HomeScreen() {
     };
 
     fetchMenus();
-  }, []};
+  }, [selectedMensa]);
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -122,7 +138,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 📍 Standort-Auswahl Modal */}
+      {/* 📍 Standort-Auswahl */}
       {showLocationSelector && (
         <View style={{
           position: 'absolute',
@@ -180,6 +196,7 @@ export default function HomeScreen() {
           {format(selectedDate, 'EEEE, dd.MM.yyyy')}
         </Text>
       </TouchableOpacity>
+
       {showDatePicker && (
         <DateTimePicker
           value={selectedDate}
@@ -189,7 +206,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* Menü-Liste oder Ladeanzeige */}
+      {/* Menüliste */}
       {loadingMenus ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (
