@@ -69,9 +69,9 @@ export default function HomeScreen() {
       setLoadingMenus(true);
 
       const { data, error } = await supabase
-        .from('Menü')
+        .from('Menue')
         .select(`
-          Menü_id,
+          Menue_id,
           HatSalad,
           istVegan,
           Bild,
@@ -79,7 +79,7 @@ export default function HomeScreen() {
             Gericht_Name,
             Beschreibung
           ),
-          MenüBewertung (
+          MenueBewertung (
             Rating
           )
         `);
@@ -92,15 +92,15 @@ export default function HomeScreen() {
       }
 
       const formatted = data.map((menu) => {
-        const ratings = menu.MenüBewertung || [];
+        const ratings = menu.MenueBewertung || [];
         const average =
           ratings.length > 0
             ? ratings.reduce((sum, r) => sum + r.Rating, 0) / ratings.length
             : 0;
 
         return {
-          id: menu.Menü_id,
-          title: menu.Gericht?.Gericht_Name ?? 'Unbekannt',
+          id: menu.Menue_id,
+          title: menu.Gericht_id?.Gericht_Name ?? 'Unbekannt',
           description: menu.Gericht?.Beschreibung ?? '',
           image: menu.Bild,
           isVegan: menu.istVegan,
