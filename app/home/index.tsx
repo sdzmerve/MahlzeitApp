@@ -113,7 +113,7 @@ export default function HomeScreen() {
     };
 
     fetchMenus();
-  }, []};
+  }, []);
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
