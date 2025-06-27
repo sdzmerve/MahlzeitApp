@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabaseClient';
 import StarRating from '@/components/StarRating';
 import { colors } from '@/styles/colors';
 
+
 type Menu = {
   id: string;
   title: string;
@@ -133,7 +134,7 @@ export default function HomeScreen() {
     };
 
     fetchMenus();
-  }, []);
+  }, []};
 
   const handleLocationPress = async () => {
     try {
