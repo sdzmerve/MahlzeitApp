@@ -29,16 +29,23 @@ export const logout = async () => {
   }
 };
 
-export const register = async (email: string, password: string) => {
+export const register = async (email: string, password: string, role: string) => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
   });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  return data;
+  const user = data.user;
+
+  // Rollenspeicherung z. B. in separater users-Tabelle
+  if (user) {
+    await supabase
+      .from('users')
+      .insert({ id: user.id, email, role });
+  }
 };
+
+
 

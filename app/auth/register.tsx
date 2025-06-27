@@ -11,18 +11,28 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [passwordRepeat, setPasswordRepeat] = useState('');
   const [loading, setLoading] = useState(false);
-    
+
+  const determineRoleFromEmail = (email: string): string => {
+    const lower = email.toLowerCase();
+    if (lower.endsWith('@student.dhbw-mannheim.de')) return 'student';
+    if (lower.endsWith('@dhbw-mannheim.de')) return 'dozent';
+    if (lower.endsWith('@mensa.de')) return 'chef';
+    return 'gast';
+  };
+
   const handleRegister = async () => {
     setLoading(true);
     if (password !== passwordRepeat) {
-        Alert.alert('Fehler', 'Die Passwörter stimmen nicht überein.');
-        setLoading(false);
-        return;
+      Alert.alert('Fehler', 'Die Passwörter stimmen nicht überein.');
+      setLoading(false);
+      return;
     }
+
     try {
-      await register(email, password);
+      const role = determineRoleFromEmail(email);
+      await register(email, password, role);
       Alert.alert('Erfolg', 'Bitte bestätige deine E-Mail.');
-      router.replace('/auth'); // Zurück zum Login
+      router.replace('/auth');
     } catch (error: any) {
       Alert.alert('Registrierung fehlgeschlagen', error.message);
     } finally {
@@ -47,7 +57,6 @@ export default function RegisterScreen() {
         value={password}
         onChangeText={setPassword}
       />
-
       <Input
         placeholder="Passwort wiederholen"
         secureTextEntry
@@ -65,8 +74,29 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 24, justifyContent: 'center' },
-  logo: { width: 100, height: 100, resizeMode: 'contain', alignSelf: 'center', marginBottom: 32 },
-  title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 32, color: colors.text },
-  link: { color: colors.primary, marginTop: 12, textAlign: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: 24,
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 32,
+    color: colors.text,
+  },
+  link: {
+    color: colors.primary,
+    marginTop: 12,
+    textAlign: 'center',
+  },
 });

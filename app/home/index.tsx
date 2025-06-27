@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
@@ -16,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabaseClient';
 import StarRating from '@/components/StarRating';
 import { colors } from '@/styles/colors';
+import { Session } from '@supabase/supabase-js';
 
 // 🔷 Typdefinitionen
 type RawMenu = {
@@ -41,14 +43,28 @@ export default function HomeScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loadingMenus, setLoadingMenus] = useState(false);
-
   const [mensen, setMensen] = useState<{ id: number; name: string }[]>([]);
   const [selectedMensa, setSelectedMensa] = useState<string | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
+  // 🔌 Logout ausführen
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/auth');
+  };
+
+  // ❓ Bestätigungsdialog vor Logout
+  const handleLogoutPrompt = () => {
+    Alert.alert(
+      'Abmelden',
+      'Möchtest du dich wirklich abmelden?',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
+      ],
+      { cancelable: true }
+    );
   };
 
   // 📍 Mensen laden
@@ -73,6 +89,30 @@ export default function HomeScreen() {
     };
 
     fetchMensen();
+  }, []);
+
+  // 👤 Rolle laden
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const userId = session?.user?.id;
+      if (!userId) return;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data?.role) {
+        setUserRole(data.role);
+      }
+    };
+
+    fetchUserRole();
   }, []);
 
   // 📌 Menüs laden
@@ -129,11 +169,7 @@ export default function HomeScreen() {
     };
 
     fetchMenus();
-<<<<<<< HEAD
-  }, []);
-=======
   }, [selectedMensa]);
->>>>>>> b834b737f6cacd24547deb32da74c9e3c3739ebd
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -177,7 +213,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Navigationsleiste */}
+      {/* 🔝 Navigationsleiste */}
       <View style={styles.navBar}>
         <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
           <Text style={styles.location}>
@@ -189,12 +225,12 @@ export default function HomeScreen() {
           <Image source={require('@/assets/icon.png')} style={styles.logo} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/account')}>
+        <TouchableOpacity onPress={handleLogoutPrompt}>
           <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
-      {/* Datumsauswahl */}
+      {/* 📆 Datumsauswahl */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
         <Text style={styles.dateText}>
           {format(selectedDate, 'EEEE, dd.MM.yyyy')}
@@ -210,7 +246,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* Menüliste */}
+      {/* 📋 Menüliste */}
       {loadingMenus ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (

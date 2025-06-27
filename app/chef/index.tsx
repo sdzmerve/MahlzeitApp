@@ -1,76 +1,115 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Button, TextInput, ScrollView } from 'react-native';
+import { View, Text, Button, TextInput, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSession } from '../../lib/session'; // Beispiel: Auth-Hook
-import { getDishes, addDish, setWeeklyMenu } from '../../lib/api'; // Backend-Funktionen
+import { supabase } from '@/lib/supabaseClient'; // ggf. anpassen
+import { getDishes, addDish, setWeeklyMenu } from '@/lib/api'; // eigene API-Methoden
+import { Session } from '@supabase/supabase-js';
 
 export default function ChefPage() {
-  const { user, isLoading } = useSession();
   const router = useRouter();
   const [dishName, setDishName] = useState('');
-  const [dishes, setDishes] = useState([]);
-  const [weeklyMenu, setWeeklyMenuState] = useState({});
+  const [dishes, setDishes] = useState<any[]>([]);
+  const [weeklyMenu, setWeeklyMenuState] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
 
+  // ⏳ Rolle checken
   useEffect(() => {
-    if (!isLoading && user?.role !== 'chef') {
-      router.replace('/home');
-    }
-  }, [user, isLoading]);
+    const checkUserRole = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-  useEffect(() => {
-    loadDishes();
+      const userId = session?.user?.id;
+      if (!userId) {
+        router.replace('/auth');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (error || data?.role !== 'chef') {
+        router.replace('/home');
+      } else {
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
   }, []);
+
+  // 📦 Gerichte laden
+  useEffect(() => {
+    if (!loading) loadDishes();
+  }, [loading]);
 
   const loadDishes = async () => {
     const data = await getDishes();
     setDishes(data);
   };
 
+  // ➕ Gericht hinzufügen
   const handleAddDish = async () => {
+    if (!dishName.trim()) return;
     await addDish({ name: dishName });
     setDishName('');
     loadDishes();
   };
 
+  // 💾 Wochenmenü speichern
   const handleSetMenu = async () => {
     await setWeeklyMenu(weeklyMenu);
-    alert('Wochenmenü gespeichert');
+    Alert.alert('Erfolg', 'Wochenmenü gespeichert');
   };
 
-  if (isLoading) return <Text>Lade...</Text>;
+  if (loading) return <Text style={{ padding: 20 }}>Zugriffsprüfung...</Text>;
 
   return (
-    <ScrollView>
-      <Text className="text-xl font-bold">👨‍🍳 Kochbereich</Text>
+    <ScrollView style={{ padding: 16 }}>
+      <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 16 }}>👨‍🍳 Kochbereich</Text>
 
       {/* Gericht hinzufügen */}
       <TextInput
-        placeholder="Neues Gericht"
+        placeholder="Neues Gericht eingeben"
         value={dishName}
         onChangeText={setDishName}
-        className="border p-2 my-2"
+        style={{
+          borderColor: '#ccc',
+          borderWidth: 1,
+          padding: 8,
+          marginBottom: 8,
+          borderRadius: 6,
+        }}
       />
       <Button title="Gericht hinzufügen" onPress={handleAddDish} />
 
       {/* Wochenplan */}
-      <Text className="mt-6 text-lg">🗓️ Wochenplan erstellen</Text>
+      <Text style={{ fontSize: 18, marginTop: 24, marginBottom: 8 }}>🗓️ Wochenplan erstellen</Text>
+
       {['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'].map((day) => (
-        <View key={day} className="my-2">
-          <Text>{day}</Text>
-          <ScrollView horizontal>
+        <View key={day} style={{ marginBottom: 12 }}>
+          <Text style={{ fontWeight: 'bold' }}>{day}</Text>
+          <ScrollView horizontal style={{ marginVertical: 4 }}>
             {dishes.map((dish) => (
-              <Button
-                key={dish.id}
-                title={dish.name}
-                onPress={() =>
-                  setWeeklyMenuState((prev) => ({ ...prev, [day]: dish.name }))
-                }
-              />
+              <View key={dish.id} style={{ marginRight: 8 }}>
+                <Button
+                  title={dish.name}
+                  onPress={() =>
+                    setWeeklyMenuState((prev) => ({ ...prev, [day]: dish.name }))
+                  }
+                />
+              </View>
             ))}
           </ScrollView>
-          <Text>Ausgewählt: {weeklyMenu[day]}</Text>
+          <Text style={{ fontStyle: 'italic' }}>
+            Ausgewählt: {weeklyMenu[day] || 'Kein Gericht'}
+          </Text>
         </View>
       ))}
+
       <Button title="Wochenmenü speichern" onPress={handleSetMenu} />
     </ScrollView>
   );
