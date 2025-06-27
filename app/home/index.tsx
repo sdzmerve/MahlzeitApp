@@ -12,7 +12,6 @@ import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import * as Location from 'expo-location';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabaseClient';
 import StarRating from '@/components/StarRating';
@@ -31,8 +30,6 @@ type Menu = {
 export default function HomeScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [location, setLocation] = useState<string | null>(null);
-  const [loadingLocation, setLoadingLocation] = useState(false);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loadingMenus, setLoadingMenus] = useState(false);
 
@@ -40,12 +37,12 @@ export default function HomeScreen() {
   const [selectedMensa, setSelectedMensa] = useState<string | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
 
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/auth');
   };
 
+  // 📌 Mensen laden
   useEffect(() => {
     const fetchMensen = async () => {
       const { data, error } = await supabase
@@ -66,26 +63,8 @@ export default function HomeScreen() {
     fetchMensen();
   }, []);
 
-
+  // 📌 Menüs laden (später kannst du hier nach `selectedMensa` filtern)
   useEffect(() => {
-    const fetchMensen = async () => {
-    const { data, error } = await supabase
-      .from('Mensa')
-      .select('Mensa_id, Mensa_name');
-
-    if (error) {
-      console.error('Fehler beim Laden der Mensen:', error.message);
-    } else {
-      const formatted = data.map((m) => ({
-        id: m.Mensa_id,
-        name: m.Mensa_name,
-      }));
-      setMensen(formatted);
-    }
-  };
-
-  fetchMensen();
-}, []);
     const fetchMenus = async () => {
       setLoadingMenus(true);
 
@@ -136,74 +115,55 @@ export default function HomeScreen() {
     fetchMenus();
   }, []};
 
-  const handleLocationPress = async () => {
-    try {
-      setLoadingLocation(true);
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocation('Keine Berechtigung');
-        return;
-      }
-
-      let loc = await Location.getCurrentPositionAsync({});
-      setLocation(`📍 ${loc.coords.latitude.toFixed(2)}, ${loc.coords.longitude.toFixed(2)}`);
-    } catch (err) {
-      setLocation('Fehler beim Laden');
-    } finally {
-      setLoadingLocation(false);
-    }
-  };
-
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
     if (date) setSelectedDate(date);
   };
 
-  {showLocationSelector && (
-  <View style={{
-    position: 'absolute',
-    top: 100,
-    left: 20,
-    right: 20,
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 10,
-    zIndex: 1000,
-  }}>
-    <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>Standort auswählen</Text>
-    {mensen.map((m) => (
-      <TouchableOpacity
-        key={m.id}
-        onPress={() => {
-          setSelectedMensa(m.name);
-          setShowLocationSelector(false);
-        }}
-        style={{ paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 }}
-      >
-        <Text>{m.name}</Text>
-      </TouchableOpacity>
-    ))}
-    <TouchableOpacity onPress={() => setShowLocationSelector(false)} style={{ marginTop: 10 }}>
-      <Text style={{ color: 'red', textAlign: 'right' }}>Abbrechen</Text>
-    </TouchableOpacity>
-  </View>
-)}
-
-
   return (
     <View style={styles.container}>
+      {/* 📍 Standort-Auswahl Modal */}
+      {showLocationSelector && (
+        <View style={{
+          position: 'absolute',
+          top: 100,
+          left: 20,
+          right: 20,
+          backgroundColor: '#fff',
+          padding: 16,
+          borderRadius: 12,
+          shadowColor: '#000',
+          shadowOpacity: 0.2,
+          shadowRadius: 10,
+          elevation: 10,
+          zIndex: 1000,
+        }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>Standort auswählen</Text>
+          {mensen.map((m) => (
+            <TouchableOpacity
+              key={m.id}
+              onPress={() => {
+                setSelectedMensa(m.name);
+                setShowLocationSelector(false);
+              }}
+              style={{ paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 }}
+            >
+              <Text>{m.name}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity onPress={() => setShowLocationSelector(false)} style={{ marginTop: 10 }}>
+            <Text style={{ color: 'red', textAlign: 'right' }}>Abbrechen</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Navigationsleiste */}
       <View style={styles.navBar}>
         <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
-        <Text style={styles.location}>
-          {selectedMensa ? `📍 ${selectedMensa}` : '📍 Mensa wählen'}
-        </Text>
-      </TouchableOpacity>
-
+          <Text style={styles.location}>
+            {selectedMensa ? `📍 ${selectedMensa}` : '📍 Mensa wählen'}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.replace('/home')}>
           <Image source={require('@/assets/icon.png')} style={styles.logo} />
