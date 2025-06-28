@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  StyleSheet,
   Image,
   TouchableOpacity,
   FlatList,
@@ -17,15 +16,19 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabaseClient';
 import StarRating from '@/components/StarRating';
 import { colors } from '@/styles/colors';
-import { Session } from '@supabase/supabase-js';
 
-// 🔷 Typdefinitionen
-type RawMenu = {
+// 📦 Typen für Menü
+type GerichtType = {
+  Gericht_Name: string;
+  Beschreibung: string;
+};
+
+type MenuType = {
   Menue_id: string;
   HatSalad?: boolean;
   istVegan?: boolean;
   Bild?: string;
-  Gericht?: { Gericht_Name: string; Beschreibung: string } | { Gericht_Name: string; Beschreibung: string }[];
+  Gericht: GerichtType | GerichtType[];
   MenueBewertung?: { Rating: number }[];
 };
 
@@ -48,13 +51,11 @@ export default function HomeScreen() {
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // 🔌 Logout ausführen
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/auth');
   };
 
-  // ❓ Bestätigungsdialog vor Logout
   const handleLogoutPrompt = () => {
     Alert.alert(
       'Abmelden',
@@ -74,16 +75,14 @@ export default function HomeScreen() {
         .from('Mensa')
         .select('Mensa_id, Mensa_name');
 
-      if (error) {
-        console.error('Fehler beim Laden der Mensen:', error.message);
-      } else {
+      if (!error && data) {
         const formatted = data.map((m) => ({
           id: m.Mensa_id,
           name: m.Mensa_name,
         }));
         setMensen(formatted);
         if (formatted.length > 0) {
-          setSelectedMensa(formatted[0].name); // Standardauswahl
+          setSelectedMensa(formatted[0].name);
         }
       }
     };
@@ -115,61 +114,62 @@ export default function HomeScreen() {
     fetchUserRole();
   }, []);
 
-  // 📌 Menüs laden
+  // 📆 Menü für konkretes Datum laden
   useEffect(() => {
     const fetchMenus = async () => {
       setLoadingMenus(true);
 
       const { data, error } = await supabase
-        .from('Menue')
+        .from('Tagesmenue')
         .select(`
-          Menue_id,
-          HatSalad,
-          istVegan,
-          Bild,
-          Gericht (
-            Gericht_Name,
-            Beschreibung
-          ),
-          MenueBewertung (
-            Rating
+          datum,
+          menue:Menue (
+            Menue_id,
+            HatSalad,
+            istVegan,
+            Bild,
+            Gericht (
+              Gericht_Name,
+              Beschreibung
+            ),
+            MenueBewertung (
+              Rating
+            )
           )
-        `);
+        `)
+        .eq('datum', format(selectedDate, 'yyyy-MM-dd'))
+        .single();
 
-      if (error) {
-        console.error('Fehler beim Laden:', error.message);
+      const menu = Array.isArray(data?.menue) ? data.menue[0] : data?.menue;
+
+      if (error || !menu) {
         setMenus([]);
         setLoadingMenus(false);
         return;
       }
 
-      const rawMenus = data as RawMenu[];
+      const ratings = Array.isArray(menu.MenueBewertung) ? menu.MenueBewertung : [];
+      const average =
+        ratings.length > 0
+          ? ratings.reduce((sum, r) => sum + r.Rating, 0) / ratings.length
+          : 0;
 
-      const formatted = rawMenus.map((menu) => {
-        const ratings = menu.MenueBewertung || [];
-        const average =
-          ratings.length > 0
-            ? ratings.reduce((sum, r) => sum + r.Rating, 0) / ratings.length
-            : 0;
+      const gericht = Array.isArray(menu.Gericht) ? menu.Gericht[0] : menu.Gericht;
 
-        const gericht = Array.isArray(menu.Gericht) ? menu.Gericht[0] : menu.Gericht;
+      setMenus([{
+        id: menu.Menue_id,
+        title: gericht?.Gericht_Name ?? 'Unbekannt',
+        description: gericht?.Beschreibung ?? '',
+        image: menu.Bild,
+        isVegan: menu.istVegan,
+        average_rating: Math.round(average),
+      }]);
 
-        return {
-          id: menu.Menue_id,
-          title: gericht?.Gericht_Name ?? 'Unbekannt',
-          description: gericht?.Beschreibung ?? '',
-          image: menu.Bild,
-          isVegan: menu.istVegan,
-          average_rating: Math.round(average),
-        };
-      });
-
-      setMenus(formatted);
       setLoadingMenus(false);
     };
 
     fetchMenus();
-  }, [selectedMensa]);
+  }, [selectedDate]);
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -178,7 +178,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 📍 Standort-Auswahl */}
       {showLocationSelector && (
         <View style={{
           position: 'absolute',
@@ -230,7 +229,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 📆 Datumsauswahl */}
+      {/* 📅 Datumsauswahl */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
         <Text style={styles.dateText}>
           {format(selectedDate, 'EEEE, dd.MM.yyyy')}
