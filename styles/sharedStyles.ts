@@ -59,4 +59,18 @@ export const sharedStyles = StyleSheet.create({
     color: colors.primary,
     marginTop: 12,
   },
+  label: {
+  fontSize: 16,
+  fontWeight: '500',
+  color: colors.text,
+  marginBottom: 8,
+  marginTop: 8,
+},
+pickerWrapper: {
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 10,
+  marginBottom: 16,
+  backgroundColor: colors.inputBackground,
+},
 });

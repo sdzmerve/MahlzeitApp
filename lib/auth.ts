@@ -29,23 +29,31 @@ export const logout = async () => {
   }
 };
 
-export const register = async (email: string, password: string, role: string) => {
-  const { data, error } = await supabase.auth.signUp({
+export async function register(email: string, password: string, role: string) {
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
   });
 
-  if (error) throw error;
-
-  const user = data.user;
-
-  // Rollenspeicherung z. B. in separater users-Tabelle
-  if (user) {
-    await supabase
-      .from('users')
-      .insert({ id: user.id, email, role });
+  if (signUpError) {
+    console.error('Fehler beim SignUp:', signUpError);
+    throw signUpError;
   }
-};
 
+  const user = signUpData?.user;
+  if (!user) throw new Error('Benutzer konnte nicht erstellt werden.');
 
+  const { error: insertError } = await supabase.from('User').insert({
+    User_id: user.id,
+    EMailAdresse: user.email,
+    role: role,
+    Hauptmensa: selectedMensa,
+  });
 
+  if (insertError) {
+    console.error('Fehler beim Einfügen in users:', insertError);
+    throw insertError;
+  }
+
+  return user;
+}

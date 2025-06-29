@@ -73,7 +73,7 @@ export default function HomeScreen() {
     const fetchMensen = async () => {
       const { data, error } = await supabase
         .from('Mensa')
-        .select('Mensa_id, Mensa_name');
+        .select('"Mensa_id", "Mensa_name"');
 
       if (!error && data) {
         const formatted = data.map((m) => ({

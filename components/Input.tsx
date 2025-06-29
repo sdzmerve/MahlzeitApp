@@ -1,16 +1,10 @@
-import { TextInput, StyleSheet } from 'react-native';
+import { TextInput, StyleSheet, TextInputProps } from 'react-native';
 import { colors } from '@/styles/colors';
 
-type Props = {
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address';
-};
+type Props = TextInputProps;
 
 export default function Input(props: Props) {
-  return <TextInput style={styles.input} {...props} />;
+  return <TextInput style={[styles.input, props.style]} {...props} />;
 }
 
 const styles = StyleSheet.create({

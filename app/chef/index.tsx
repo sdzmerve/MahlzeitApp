@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Button, TextInput, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabaseClient'; // ggf. anpassen
-import { getDishes, addDish, setWeeklyMenu } from '@/lib/api'; // eigene API-Methoden
+import { supabase } from '@/lib/supabaseClient';
+import { getDishes, addDish, setWeeklyMenu } from '@/lib/api';
 import { Session } from '@supabase/supabase-js';
 
 export default function ChefPage() {
@@ -12,26 +12,27 @@ export default function ChefPage() {
   const [weeklyMenu, setWeeklyMenuState] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
-  // ⏳ Rolle checken
+  // ✅ Rolle checken (neue Version mit getUser)
   useEffect(() => {
     const checkUserRole = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      const userId = session?.user?.id;
-      if (!userId) {
+      if (userError || !user) {
         router.replace('/auth');
         return;
       }
 
+      // Optional zum Debuggen
+      console.log('User ID:', user.id);
+
       const { data, error } = await supabase
         .from('users')
         .select('role')
-        .eq('id', userId)
+        .eq('id', user.id)
         .single();
 
       if (error || data?.role !== 'chef') {
+        console.warn('Keine Berechtigung:', error || data?.role);
         router.replace('/home');
       } else {
         setLoading(false);
@@ -41,7 +42,6 @@ export default function ChefPage() {
     checkUserRole();
   }, []);
 
-  // 📦 Gerichte laden
   useEffect(() => {
     if (!loading) loadDishes();
   }, [loading]);
@@ -51,7 +51,6 @@ export default function ChefPage() {
     setDishes(data);
   };
 
-  // ➕ Gericht hinzufügen
   const handleAddDish = async () => {
     if (!dishName.trim()) return;
     await addDish({ name: dishName });
@@ -59,13 +58,12 @@ export default function ChefPage() {
     loadDishes();
   };
 
-  // 💾 Wochenmenü speichern
   const handleSetMenu = async () => {
     await setWeeklyMenu(weeklyMenu);
     Alert.alert('Erfolg', 'Wochenmenü gespeichert');
   };
 
-  if (loading) return <Text style={{ padding: 20 }}>Zugriffsprüfung...</Text>;
+  if (loading) return <Text style={{ padding: 20 }}>🔐 Zugriffsprüfung...</Text>;
 
   return (
     <ScrollView style={{ padding: 16 }}>

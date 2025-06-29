@@ -5,6 +5,10 @@ import Button from '@/components/Button';
 import { colors } from '@/styles/colors';
 import { register } from '@/lib/auth';
 import { router } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
+
+
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -20,25 +24,44 @@ export default function RegisterScreen() {
     return 'gast';
   };
 
-  const handleRegister = async () => {
-    setLoading(true);
-    if (password !== passwordRepeat) {
-      Alert.alert('Fehler', 'Die Passwörter stimmen nicht überein.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const role = determineRoleFromEmail(email);
-      await register(email, password, role);
-      Alert.alert('Erfolg', 'Bitte bestätige deine E-Mail.');
-      router.replace('/auth');
-    } catch (error: any) {
-      Alert.alert('Registrierung fehlgeschlagen', error.message);
-    } finally {
-      setLoading(false);
-    }
+  const isValidEmail = (email: string): boolean => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email.toLowerCase());
   };
+
+ const handleRegister = async () => {
+  if (!email || !password || !passwordRepeat) {
+    Alert.alert('Fehler', 'Bitte fülle alle Felder aus.');
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    Alert.alert('Fehler', 'Bitte gib eine gültige E-Mail-Adresse ein.');
+    return;
+  }
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    Alert.alert('Fehler', `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen lang sein.`);
+    return;
+  }
+
+  if (password !== passwordRepeat) {
+    Alert.alert('Fehler', 'Die Passwörter stimmen nicht überein.');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const role = determineRoleFromEmail(email);
+    await register(email, password, role);
+    Alert.alert('Erfolg', 'Bitte bestätige deine E-Mail.');
+    router.replace('/auth');
+  } catch (error: any) {
+    Alert.alert('Registrierung fehlgeschlagen', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>
@@ -50,6 +73,8 @@ export default function RegisterScreen() {
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+        autoCorrect={false}
       />
       <Input
         placeholder="Passwort"
@@ -63,6 +88,7 @@ export default function RegisterScreen() {
         value={passwordRepeat}
         onChangeText={setPasswordRepeat}
       />
+
 
       <Button title="Registrieren" onPress={handleRegister} loading={loading} />
 
