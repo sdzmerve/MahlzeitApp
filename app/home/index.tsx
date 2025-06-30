@@ -17,19 +17,9 @@ import { supabase } from '@/lib/supabaseClient';
 import StarRating from '@/components/StarRating';
 import { colors } from '@/styles/colors';
 
-// 📦 Typen für Menü
 type GerichtType = {
   Gericht_Name: string;
   Beschreibung: string;
-};
-
-type MenuType = {
-  Menue_id: string;
-  HatSalad?: boolean;
-  istVegan?: boolean;
-  Bild?: string;
-  Gericht: GerichtType | GerichtType[];
-  MenueBewertung?: { Rating: number }[];
 };
 
 type Menu = {
@@ -47,7 +37,7 @@ export default function HomeScreen() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loadingMenus, setLoadingMenus] = useState(false);
   const [mensen, setMensen] = useState<{ id: number; name: string }[]>([]);
-  const [selectedMensa, setSelectedMensa] = useState<string | null>(null);
+  const [selectedMensa, setSelectedMensa] = useState<{ id: number; name: string } | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
@@ -68,7 +58,6 @@ export default function HomeScreen() {
     );
   };
 
-  // 📍 Mensen laden
   useEffect(() => {
     const fetchMensen = async () => {
       const { data, error } = await supabase
@@ -82,7 +71,7 @@ export default function HomeScreen() {
         }));
         setMensen(formatted);
         if (formatted.length > 0) {
-          setSelectedMensa(formatted[0].name);
+          setSelectedMensa(formatted[0]);
         }
       }
     };
@@ -90,7 +79,6 @@ export default function HomeScreen() {
     fetchMensen();
   }, []);
 
-  // 👤 Rolle laden
   useEffect(() => {
     const fetchUserRole = async () => {
       const {
@@ -114,7 +102,6 @@ export default function HomeScreen() {
     fetchUserRole();
   }, []);
 
-  // 🆕 Hauptmensa speichern, wenn ausgewählt
   useEffect(() => {
     const updateUserMensa = async () => {
       if (!selectedMensa) return;
@@ -129,10 +116,10 @@ export default function HomeScreen() {
         .eq('User_id', userId)
         .single();
 
-      if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa) {
+      if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa.name) {
         await supabase
           .from('users')
-          .update({ Hauptmensa: selectedMensa })
+          .update({ Hauptmensa: selectedMensa.name })
           .eq('User_id', userId);
       }
     };
@@ -140,18 +127,22 @@ export default function HomeScreen() {
     updateUserMensa();
   }, [selectedMensa]);
 
-  // 📆 Menü laden
   useEffect(() => {
     const fetchMenus = async () => {
       setLoadingMenus(true);
 
+      if (!selectedMensa) {
+        setMenus([]);
+        setLoadingMenus(false);
+        return;
+      }
+
       const { data, error } = await supabase
-        .from('Tagesmenue')
+        .from('TagesMenue')
         .select(`
           datum,
           menue:Menue (
             Menue_id,
-            HatSalad,
             istVegan,
             Bild,
             Gericht (
@@ -164,38 +155,40 @@ export default function HomeScreen() {
           )
         `)
         .eq('datum', format(selectedDate, 'yyyy-MM-dd'))
-        .single();
+        .eq('mensa_id', selectedMensa.id);
 
-      const menu = Array.isArray(data?.menue) ? data.menue[0] : data?.menue;
-
-      if (error || !menu) {
+      if (error || !data) {
         setMenus([]);
         setLoadingMenus(false);
         return;
       }
 
-      const ratings = Array.isArray(menu.MenueBewertung) ? menu.MenueBewertung : [];
-      const average =
-        ratings.length > 0
-          ? ratings.reduce((sum, r) => sum + r.Rating, 0) / ratings.length
-          : 0;
+      const menusMapped = data.map((entry: any) => {
+        const gericht = entry.menue?.Gericht;
+        const ratings = Array.isArray(entry.menue?.MenueBewertung)
+          ? entry.menue.MenueBewertung
+          : [];
+        const average =
+          ratings.length > 0
+            ? ratings.reduce((sum: number, r: { Rating: number }) => sum + r.Rating, 0) / ratings.length
+            : 0;
 
-      const gericht = Array.isArray(menu.Gericht) ? menu.Gericht[0] : menu.Gericht;
+        return {
+          id: entry.menue?.Menue_id ?? entry.menue_id,
+          title: gericht?.Gericht_Name ?? 'Unbekannt',
+          description: gericht?.Beschreibung ?? '',
+          image: entry.menue?.Bild,
+          isVegan: entry.menue?.istVegan,
+          average_rating: Math.round(average),
+        };
+      });
 
-      setMenus([{
-        id: menu.Menue_id,
-        title: gericht?.Gericht_Name ?? 'Unbekannt',
-        description: gericht?.Beschreibung ?? '',
-        image: menu.Bild,
-        isVegan: menu.istVegan,
-        average_rating: Math.round(average),
-      }]);
-
+      setMenus(menusMapped);
       setLoadingMenus(false);
     };
 
     fetchMenus();
-  }, [selectedDate]);
+  }, [selectedDate, selectedMensa]);
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -224,7 +217,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={m.id}
               onPress={() => {
-                setSelectedMensa(m.name);
+                setSelectedMensa(m);
                 setShowLocationSelector(false);
               }}
               style={{ paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 }}
@@ -238,11 +231,10 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* 🔝 Navigationsleiste */}
       <View style={styles.navBar}>
         <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
           <Text style={styles.location}>
-            {selectedMensa ? `📍 ${selectedMensa}` : '📍 Mensa wählen'}
+            {selectedMensa ? `📍 ${selectedMensa.name}` : '📍 Mensa wählen'}
           </Text>
         </TouchableOpacity>
 
@@ -255,7 +247,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 📅 Datumsauswahl */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
         <Text style={styles.dateText}>
           {format(selectedDate, 'EEEE, dd.MM.yyyy')}
@@ -271,7 +262,6 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* 📋 Menüliste */}
       {loadingMenus ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (
