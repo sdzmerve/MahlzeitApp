@@ -43,11 +43,11 @@ export async function register(email: string, password: string, role: string) {
   const user = signUpData?.user;
   if (!user) throw new Error('Benutzer konnte nicht erstellt werden.');
 
-  const { error: insertError } = await supabase.from('User').insert({
+  const { error: insertError } = await supabase.from('users').insert({
     User_id: user.id,
     EMailAdresse: user.email,
     role: role,
-    Hauptmensa: selectedMensa,
+    Hauptmensa: null,
   });
 
   if (insertError) {

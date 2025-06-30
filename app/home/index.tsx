@@ -73,7 +73,7 @@ export default function HomeScreen() {
     const fetchMensen = async () => {
       const { data, error } = await supabase
         .from('Mensa')
-        .select('"Mensa_id", "Mensa_name"');
+        .select('Mensa_id, Mensa_name');
 
       if (!error && data) {
         const formatted = data.map((m) => ({
@@ -103,7 +103,7 @@ export default function HomeScreen() {
       const { data, error } = await supabase
         .from('users')
         .select('role')
-        .eq('id', userId)
+        .eq('User_id', userId)
         .single();
 
       if (!error && data?.role) {
@@ -114,7 +114,33 @@ export default function HomeScreen() {
     fetchUserRole();
   }, []);
 
-  // 📆 Menü für konkretes Datum laden
+  // 🆕 Hauptmensa speichern, wenn ausgewählt
+  useEffect(() => {
+    const updateUserMensa = async () => {
+      if (!selectedMensa) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) return;
+
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('Hauptmensa')
+        .eq('User_id', userId)
+        .single();
+
+      if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa) {
+        await supabase
+          .from('users')
+          .update({ Hauptmensa: selectedMensa })
+          .eq('User_id', userId);
+      }
+    };
+
+    updateUserMensa();
+  }, [selectedMensa]);
+
+  // 📆 Menü laden
   useEffect(() => {
     const fetchMenus = async () => {
       setLoadingMenus(true);
