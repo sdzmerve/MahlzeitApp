@@ -14,13 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabaseClient';
-import StarRating from '@/components/StarRating';
+import StarRatingInput from '@/components/StarRatingInput';
 import { colors } from '@/styles/colors';
-
-type GerichtType = {
-  Gericht_Name: string;
-  Beschreibung: string;
-};
 
 type Menu = {
   id: string;
@@ -47,23 +42,15 @@ export default function HomeScreen() {
   };
 
   const handleLogoutPrompt = () => {
-    Alert.alert(
-      'Abmelden',
-      'Möchtest du dich wirklich abmelden?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
-      ],
-      { cancelable: true }
-    );
+    Alert.alert('Abmelden', 'Möchtest du dich wirklich abmelden?', [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
+    ]);
   };
 
   useEffect(() => {
     const fetchMensen = async () => {
-      const { data, error } = await supabase
-        .from('Mensa')
-        .select('Mensa_id, Mensa_name');
-
+      const { data, error } = await supabase.from('Mensa').select('Mensa_id, Mensa_name');
       if (!error && data) {
         const formatted = data.map((m) => ({
           id: m.Mensa_id,
@@ -75,7 +62,6 @@ export default function HomeScreen() {
         }
       }
     };
-
     fetchMensen();
   }, []);
 
@@ -98,7 +84,6 @@ export default function HomeScreen() {
         setUserRole(data.role);
       }
     };
-
     fetchUserRole();
   }, []);
 
@@ -123,76 +108,112 @@ export default function HomeScreen() {
           .eq('User_id', userId);
       }
     };
-
     updateUserMensa();
   }, [selectedMensa]);
 
-  useEffect(() => {
-    const fetchMenus = async () => {
-      setLoadingMenus(true);
+  const fetchMenus = async () => {
+    setLoadingMenus(true);
 
-      if (!selectedMensa) {
-        setMenus([]);
-        setLoadingMenus(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('TagesMenue')
-        .select(`
-          datum,
-          menue:Menue (
-            Menue_id,
-            istVegan,
-            Bild,
-            Gericht (
-              Gericht_Name,
-              Beschreibung
-            ),
-            MenueBewertung (
-              Rating
-            )
-          )
-        `)
-        .eq('datum', format(selectedDate, 'yyyy-MM-dd'))
-        .eq('mensa_id', selectedMensa.id);
-
-      if (error || !data) {
-        setMenus([]);
-        setLoadingMenus(false);
-        return;
-      }
-
-      const menusMapped = data.map((entry: any) => {
-        const gericht = entry.menue?.Gericht;
-        const ratings = Array.isArray(entry.menue?.MenueBewertung)
-          ? entry.menue.MenueBewertung
-          : [];
-        const average =
-          ratings.length > 0
-            ? ratings.reduce((sum: number, r: { Rating: number }) => sum + r.Rating, 0) / ratings.length
-            : 0;
-
-        return {
-          id: entry.menue?.Menue_id ?? entry.menue_id,
-          title: gericht?.Gericht_Name ?? 'Unbekannt',
-          description: gericht?.Beschreibung ?? '',
-          image: entry.menue?.Bild,
-          isVegan: entry.menue?.istVegan,
-          average_rating: Math.round(average),
-        };
-      });
-
-      setMenus(menusMapped);
+    if (!selectedMensa) {
+      setMenus([]);
       setLoadingMenus(false);
-    };
+      return;
+    }
 
+    const { data, error } = await supabase
+      .from('TagesMenue')
+      .select(`
+        datum,
+        menue:Menue (
+          Menue_id,
+          istVegan,
+          Bild,
+          Gericht (
+            Gericht_Name,
+            Beschreibung
+          ),
+          MenueBewertung (
+            Rating
+          )
+        )
+      `)
+      .eq('datum', format(selectedDate, 'yyyy-MM-dd'))
+      .eq('mensa_id', selectedMensa.id);
+
+    if (error || !data) {
+      setMenus([]);
+      setLoadingMenus(false);
+      return;
+    }
+
+    const menusMapped = data.map((entry: any) => {
+      const gericht = entry.menue?.Gericht;
+      const ratings = Array.isArray(entry.menue?.MenueBewertung) ? entry.menue.MenueBewertung : [];
+      const average =
+        ratings.length > 0
+          ? ratings.reduce((sum: number, r: { Rating: number }) => sum + r.Rating, 0) / ratings.length
+          : 0;
+
+      return {
+        id: entry.menue?.Menue_id ?? entry.menue_id,
+        title: gericht?.Gericht_Name ?? 'Unbekannt',
+        description: gericht?.Beschreibung ?? '',
+        image: entry.menue?.Bild,
+        isVegan: entry.menue?.istVegan,
+        average_rating: Math.round(average),
+      };
+    });
+
+    setMenus(menusMapped);
+    setLoadingMenus(false);
+  };
+
+  useEffect(() => {
     fetchMenus();
   }, [selectedDate, selectedMensa]);
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
     if (date) setSelectedDate(date);
+  };
+
+  const submitRating = async (menuId: number, rating: number) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      Alert.alert('Fehler', 'Du musst eingeloggt sein, um zu bewerten.');
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from('MenueBewertung')
+      .select('*')
+      .eq('User_id', userId)
+      .eq('Menue_id', menuId);
+
+    if (existing && existing.length > 0) {
+      Alert.alert('Schon bewertet', 'Du hast dieses Menü bereits bewertet.');
+      return;
+    }
+
+    const { error } = await supabase.from('MenueBewertung').insert([
+      {
+        Menue_id: menuId,
+        Rating: rating,
+        User_id: userId,
+        Kommentar: '',
+      },
+    ]);
+
+    if (error) {
+      Alert.alert('Fehler', 'Bewertung konnte nicht gespeichert werden.');
+    } else {
+      Alert.alert('Danke!', 'Deine Bewertung wurde gespeichert.');
+      fetchMenus(); // Refresh
+    }
   };
 
   return (
@@ -275,7 +296,9 @@ export default function HomeScreen() {
                 {item.title} {item.isVegan ? '🌱' : ''}
               </Text>
               <Text style={styles.menuDescription}>{item.description}</Text>
-              <StarRating rating={item.average_rating} />
+              <StarRatingInput
+                onRate={(selectedRating) => submitRating(parseInt(item.id), selectedRating)}
+              />
             </View>
           )}
         />
