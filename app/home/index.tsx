@@ -24,6 +24,7 @@ type Menu = {
   image?: string;
   average_rating: number;
   isVegan?: boolean;
+  alreadyRated: boolean;
 };
 
 export default function HomeScreen() {
@@ -35,6 +36,7 @@ export default function HomeScreen() {
   const [selectedMensa, setSelectedMensa] = useState<{ id: number; name: string } | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -66,34 +68,32 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserSession = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      const userId = session?.user?.id;
-      if (!userId) return;
+      const uid = session?.user?.id;
+      if (!uid) return;
+
+      setUserId(uid);
 
       const { data, error } = await supabase
         .from('users')
         .select('role')
-        .eq('User_id', userId)
+        .eq('User_id', uid)
         .single();
 
       if (!error && data?.role) {
         setUserRole(data.role);
       }
     };
-    fetchUserRole();
+    fetchUserSession();
   }, []);
 
   useEffect(() => {
     const updateUserMensa = async () => {
-      if (!selectedMensa) return;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) return;
+      if (!selectedMensa || !userId) return;
 
       const { data: existingUser } = await supabase
         .from('users')
@@ -109,12 +109,12 @@ export default function HomeScreen() {
       }
     };
     updateUserMensa();
-  }, [selectedMensa]);
+  }, [selectedMensa, userId]);
 
   const fetchMenus = async () => {
     setLoadingMenus(true);
 
-    if (!selectedMensa) {
+    if (!selectedMensa || !userId) {
       setMenus([]);
       setLoadingMenus(false);
       return;
@@ -133,7 +133,8 @@ export default function HomeScreen() {
             Beschreibung
           ),
           MenueBewertung (
-            Rating
+            Rating,
+            User_id
           )
         )
       `)
@@ -153,6 +154,7 @@ export default function HomeScreen() {
         ratings.length > 0
           ? ratings.reduce((sum: number, r: { Rating: number }) => sum + r.Rating, 0) / ratings.length
           : 0;
+      const alreadyRated = ratings.some((r: { User_id: string }) => r.User_id === userId);
 
       return {
         id: entry.menue?.Menue_id ?? entry.menue_id,
@@ -160,7 +162,8 @@ export default function HomeScreen() {
         description: gericht?.Beschreibung ?? '',
         image: entry.menue?.Bild,
         isVegan: entry.menue?.istVegan,
-        average_rating: Math.round(average),
+        average_rating: average,
+        alreadyRated,
       };
     });
 
@@ -170,7 +173,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchMenus();
-  }, [selectedDate, selectedMensa]);
+  }, [selectedDate, selectedMensa, userId]);
 
   const onChangeDate = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -178,11 +181,6 @@ export default function HomeScreen() {
   };
 
   const submitRating = async (menuId: number, rating: number) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-
     if (!userId) {
       Alert.alert('Fehler', 'Du musst eingeloggt sein, um zu bewerten.');
       return;
@@ -296,9 +294,19 @@ export default function HomeScreen() {
                 {item.title} {item.isVegan ? '🌱' : ''}
               </Text>
               <Text style={styles.menuDescription}>{item.description}</Text>
-              <StarRatingInput
-                onRate={(selectedRating) => submitRating(parseInt(item.id), selectedRating)}
-              />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 6 }}>
+                <Text style={{ marginRight: 6 }}>Ø {item.average_rating.toFixed(1)} / 5</Text>
+                <StarRatingInput initialRating={item.average_rating} editable={false} />
+              </View>
+
+              {item.alreadyRated ? (
+                <Text style={{ fontStyle: 'italic', color: 'gray' }}>Du hast bereits bewertet</Text>
+              ) : (
+                <StarRatingInput
+                  onRate={(selectedRating) => submitRating(parseInt(item.id), selectedRating)}
+                />
+              )}
             </View>
           )}
         />

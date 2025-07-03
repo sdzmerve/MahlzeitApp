@@ -5,21 +5,23 @@ import { colors } from '@/styles/colors';
 
 type Props = {
   initialRating?: number;
-  onRate: (rating: number) => void;
+  onRate?: (rating: number) => void;
+  editable?: boolean;
 };
 
-export default function StarRatingInput({ initialRating = 0, onRate }: Props) {
+export default function StarRatingInput({ initialRating = 0, onRate, editable = true }: Props) {
   const [rating, setRating] = useState(initialRating);
 
   const handlePress = (value: number) => {
+    if (!editable) return;
     setRating(value);
-    onRate(value);
+    onRate?.(value);
   };
 
   return (
     <View style={{ flexDirection: 'row', marginVertical: 8 }}>
       {[1, 2, 3, 4, 5].map((value) => (
-        <TouchableOpacity key={value} onPress={() => handlePress(value)}>
+        <TouchableOpacity key={value} onPress={() => handlePress(value)} disabled={!editable}>
           <Ionicons
             name={value <= rating ? 'star' : 'star-outline'}
             size={30}
