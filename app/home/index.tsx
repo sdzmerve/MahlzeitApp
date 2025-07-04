@@ -81,7 +81,7 @@ export default function HomeScreen() {
       const { data, error } = await supabase
         .from('users')
         .select('role')
-        .eq('User_id', uid)
+        .eq('user_id', uid)
         .single();
 
       if (!error && data?.role) {
@@ -98,14 +98,14 @@ export default function HomeScreen() {
       const { data: existingUser } = await supabase
         .from('users')
         .select('Hauptmensa')
-        .eq('User_id', userId)
+        .eq('user_id', userId)
         .single();
 
       if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa.name) {
         await supabase
           .from('users')
           .update({ Hauptmensa: selectedMensa.name })
-          .eq('User_id', userId);
+          .eq('user_id', userId);
       }
     };
     updateUserMensa();
@@ -134,7 +134,7 @@ export default function HomeScreen() {
           ),
           MenueBewertung (
             Rating,
-            User_id
+            user_id
           )
         )
       `)
@@ -142,6 +142,8 @@ export default function HomeScreen() {
       .eq('mensa_id', selectedMensa.id);
 
     if (error || !data) {
+      console.log('Menus error:', error);
+      console.log('Menus response:', data);
       setMenus([]);
       setLoadingMenus(false);
       return;
@@ -154,7 +156,7 @@ export default function HomeScreen() {
         ratings.length > 0
           ? ratings.reduce((sum: number, r: { Rating: number }) => sum + r.Rating, 0) / ratings.length
           : 0;
-      const alreadyRated = ratings.some((r: { User_id: string }) => r.User_id === userId);
+      const alreadyRated = ratings.some((r: { user_id: string }) => r.user_id === userId);
 
       return {
         id: entry.menue?.Menue_id ?? entry.menue_id,
@@ -189,7 +191,7 @@ export default function HomeScreen() {
     const { data: existing } = await supabase
       .from('MenueBewertung')
       .select('*')
-      .eq('User_id', userId)
+      .eq('user_id', userId)
       .eq('Menue_id', menuId);
 
     if (existing && existing.length > 0) {
@@ -201,7 +203,7 @@ export default function HomeScreen() {
       {
         Menue_id: menuId,
         Rating: rating,
-        User_id: userId,
+        user_id: userId,
         Kommentar: '',
       },
     ]);
