@@ -46,28 +46,23 @@ export async function register(email: string, password: string, role: string) {
     throw signUpError;
   }
 
-  // Warten auf gültige Session (nach Registrierung muss user evtl. E-Mail bestätigen)
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError || !sessionData.session?.user?.id) {
-    throw new Error('Benutzer ist nicht authentifiziert. Bitte bestätige deine E-Mail und logge dich ein.');
+  const user = signUpData.user;
+  if (!user) {
+    throw new Error('Benutzer wurde nicht erstellt.');
   }
 
-  const userId = sessionData.session.user.id;
-
-  // Einfügen in die "User"-Tabelle
-  const { error: insertError } = await supabase.from('User').insert({
-    user_id: userId,
-    'E-Mail-Adresse': email,
-    Passwort: '', // leer, wird nicht in dieser Tabelle gespeichert
+  // Insert in eigene User-Tabelle
+  const { error: insertError } = await supabase.from("User").insert({
+    user_id: user.id,
+    "E-Mail-Adresse": email,
     role: role,
-    Hauptmensa: null, // Optional: oder passende ID setzen
   });
 
   if (insertError) {
-    console.error('Fehler beim Einfügen in User-Tabelle:', insertError);
+    console.error('Fehler beim Einfügen in die User-Tabelle:', insertError);
     throw insertError;
   }
 
-  return sessionData.session.user;
+  return user;
 }
+
