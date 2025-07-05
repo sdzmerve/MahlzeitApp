@@ -188,6 +188,8 @@ export default function HomeScreen() {
       return;
     }
 
+    console.log('Submitting rating for', menuId, 'by', userId);
+
     const { data: existing } = await supabase
       .from('MenueBewertung')
       .select('*')
@@ -209,8 +211,10 @@ export default function HomeScreen() {
     ]);
 
     if (error) {
+      console.log('Insert error:', error);
       Alert.alert('Fehler', 'Bewertung konnte nicht gespeichert werden.');
     } else {
+      console.log('Insert success!');
       Alert.alert('Danke!', 'Deine Bewertung wurde gespeichert.');
       fetchMenus(); // Refresh
     }
