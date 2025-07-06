@@ -14,6 +14,15 @@ export const sharedStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+    input: {
+    borderWidth: 1,
+    borderColor: colors.border ?? '#ccc',
+    backgroundColor: colors.inputBackground ?? '#fff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    fontSize: 16,
+  },
   logo: {
     width: 40,
     height: 40,

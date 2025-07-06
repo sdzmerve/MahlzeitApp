@@ -1,30 +1,20 @@
-// app/index.tsx
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function Index() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const { role, loading } = useUserRole();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.replace('/home');
-      } else {
-        router.replace('/auth');
-      }
-      setLoading(false);
-    };
+    if (loading) return;
 
-    checkSession();
-  }, []);
+    if (role === 'Koch') {
+      router.replace('/chef');
+    } else {
+      router.replace('/home');
+    }
+  }, [role, loading]);
 
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <ActivityIndicator size="large" />
-    </View>
-  );
+  return null; // kein UI, nur Redirect
 }

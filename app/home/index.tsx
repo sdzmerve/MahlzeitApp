@@ -1,12 +1,4 @@
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert,} from 'react-native';
 import { useState, useEffect } from 'react';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { router } from 'expo-router';
@@ -16,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabaseClient';
 import StarRatingInput from '@/components/StarRatingInput';
 import { colors } from '@/styles/colors';
+import { useUserRole } from '@/lib/useUserRole';
 
 type Menu = {
   id: string;
@@ -35,8 +28,7 @@ export default function HomeScreen() {
   const [mensen, setMensen] = useState<{ id: number; name: string }[]>([]);
   const [selectedMensa, setSelectedMensa] = useState<{ id: number; name: string } | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { role, userId, loading } = useUserRole();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -68,42 +60,18 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    const fetchUserSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const uid = session?.user?.id;
-      if (!uid) return;
-
-      setUserId(uid);
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('user_id', uid)
-        .single();
-
-      if (!error && data?.role) {
-        setUserRole(data.role);
-      }
-    };
-    fetchUserSession();
-  }, []);
-
-  useEffect(() => {
     const updateUserMensa = async () => {
       if (!selectedMensa || !userId) return;
 
       const { data: existingUser } = await supabase
-        .from('users')
+        .from('"User"')
         .select('Hauptmensa')
         .eq('user_id', userId)
         .single();
 
       if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa.name) {
         await supabase
-          .from('users')
+          .from('"User"')
           .update({ Hauptmensa: selectedMensa.name })
           .eq('user_id', userId);
       }
@@ -188,8 +156,6 @@ export default function HomeScreen() {
       return;
     }
 
-    console.log('Submitting rating for', menuId, 'by', userId);
-
     const { data: existing } = await supabase
       .from('MenueBewertung')
       .select('*')
@@ -201,22 +167,18 @@ export default function HomeScreen() {
       return;
     }
 
-    const { error } = await supabase.from('MenueBewertung').insert([
-      {
-        Menue_id: menuId,
-        Rating: rating,
-        user_id: userId,
-        Kommentar: '',
-      },
-    ]);
+    const { error } = await supabase.from('MenueBewertung').insert([{
+      Menue_id: menuId,
+      Rating: rating,
+      user_id: userId,
+      Kommentar: '',
+    }]);
 
     if (error) {
-      console.log('Insert error:', error);
       Alert.alert('Fehler', 'Bewertung konnte nicht gespeichert werden.');
     } else {
-      console.log('Insert success!');
       Alert.alert('Danke!', 'Deine Bewertung wurde gespeichert.');
-      fetchMenus(); // Refresh
+      fetchMenus();
     }
   };
 
@@ -224,29 +186,17 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {showLocationSelector && (
         <View style={{
-          position: 'absolute',
-          top: 100,
-          left: 20,
-          right: 20,
-          backgroundColor: '#fff',
-          padding: 16,
-          borderRadius: 12,
-          shadowColor: '#000',
-          shadowOpacity: 0.2,
-          shadowRadius: 10,
-          elevation: 10,
-          zIndex: 1000,
+          position: 'absolute', top: 100, left: 20, right: 20,
+          backgroundColor: '#fff', padding: 16, borderRadius: 12,
+          shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
+          elevation: 10, zIndex: 1000,
         }}>
           <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>Standort auswählen</Text>
           {mensen.map((m) => (
-            <TouchableOpacity
-              key={m.id}
-              onPress={() => {
-                setSelectedMensa(m);
-                setShowLocationSelector(false);
-              }}
-              style={{ paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 }}
-            >
+            <TouchableOpacity key={m.id} onPress={() => {
+              setSelectedMensa(m);
+              setShowLocationSelector(false);
+            }} style={{ paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 }}>
               <Text>{m.name}</Text>
             </TouchableOpacity>
           ))}
@@ -256,18 +206,19 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <View style={styles.navBar}>
-        <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
-          <Text style={styles.location}>
+      {/* 🧭 NavBar: zentriertes Logo */}
+      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
+        <TouchableOpacity onPress={() => setShowLocationSelector(true)} style={{ flex: 1 }}>
+          <Text style={[styles.location]} numberOfLines={1}>
             {selectedMensa ? `📍 ${selectedMensa.name}` : '📍 Mensa wählen'}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/home')}>
-          <Image source={require('@/assets/icon.png')} style={styles.logo} />
+        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
+          <Image source={require('@/assets/icon.png')} style={[styles.logo, { alignSelf: 'center' }]} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleLogoutPrompt}>
+        <TouchableOpacity onPress={handleLogoutPrompt} style={{ flex: 1, alignItems: 'flex-end' }}>
           <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -279,12 +230,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display="default"
-          onChange={onChangeDate}
-        />
+        <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onChangeDate} />
       )}
 
       {loadingMenus ? (
@@ -309,9 +255,12 @@ export default function HomeScreen() {
               {item.alreadyRated ? (
                 <Text style={{ fontStyle: 'italic', color: 'gray' }}>Du hast bereits bewertet</Text>
               ) : (
-                <StarRatingInput
-                  onRate={(selectedRating) => submitRating(parseInt(item.id), selectedRating)}
-                />
+                <View style={{ marginTop: 4 }}>
+                  <Text style={{ fontSize: 12, marginBottom: 4, color: '#444' }}>Hier abstimmen →</Text>
+                  <StarRatingInput
+                    onRate={(selectedRating) => submitRating(parseInt(item.id), selectedRating)}
+                  />
+                </View>
               )}
             </View>
           )}
