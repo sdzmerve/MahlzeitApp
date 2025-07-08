@@ -72,14 +72,14 @@ export default function KochDashboard() {
 
         <TouchableOpacity
           onPress={() => router.push('/chef/zutaten')}
-          style={[styles.menuCard, { backgroundColor: '#ecfdf5' }]}
+          style={[styles.menuCard, { backgroundColor: '#fff7ed' }]}
         >
           <Text style={styles.menuTitle}>🧂 Zutaten verwalten</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push('/chef/gericht-zutaten')}
-          style={[styles.menuCard, { backgroundColor: '#eef2ff' }]}
+          style={[styles.menuCard, { backgroundColor: '#fff7ed' }]}
         >
           <Text style={styles.menuTitle}>🥣 Gericht-Zutaten zuweisen</Text>
         </TouchableOpacity>
@@ -93,7 +93,7 @@ export default function KochDashboard() {
 
         <TouchableOpacity
           onPress={() => router.push('/chef/tagesmenue')}
-          style={[styles.menuCard, { backgroundColor: '#fefce8' }]}
+          style={[styles.menuCard, { backgroundColor: '#fff7ed' }]}
         >
           <Text style={styles.menuTitle}>📅 Tagesmenü erstellen</Text>
         </TouchableOpacity>

@@ -15,7 +15,7 @@ export const sharedStyles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.secondary,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -55,15 +55,18 @@ export const sharedStyles = StyleSheet.create({
   menuList: {
     paddingBottom: 40,
   },
-  menuCard: {
+    menuCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: colors.secondary,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
+    position: 'relative',
   },
   menuText: {
     fontSize: 14,
@@ -134,6 +137,20 @@ pickerWrapper: {
   borderRadius: 10,
   marginBottom: 16,
   backgroundColor: colors.inputBackground,
+},
+priceBadge: {
+  position: 'absolute',
+  bottom: 12,
+  right: 12,
+  backgroundColor: colors.secondary,
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 6,
+},
+priceText: {
+  color: '#fff',
+  fontWeight: '600',
+  fontSize: 12,
 },
 ratingRow: {
   flexDirection: 'row',

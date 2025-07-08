@@ -18,6 +18,7 @@ type Menu = {
   average_rating: number;
   isVegan?: boolean;
   alreadyRated: boolean;
+  price?: number;
 };
 
 export default function HomeScreen() {
@@ -113,6 +114,11 @@ export default function HomeScreen() {
       .eq('mensa_id', selectedMensa.id);
 
     const menusMapped = (data || []).map((entry: any) => {
+      let price = 0;
+      if (role === 'Student') price = 2.5;
+      else if (role === 'Dozent') price = 3.8;
+      else if (role === 'Gast') price = 5;
+
       const gericht = entry.menue?.Gericht;
       const ratings = Array.isArray(entry.menue?.MenueBewertung) ? entry.menue.MenueBewertung : [];
       const avg = ratings.length > 0 ? ratings.reduce((s: number, r: any) => s + r.Rating, 0) / ratings.length : 0;
@@ -126,6 +132,7 @@ export default function HomeScreen() {
         isVegan: entry.menue?.istVegan,
         average_rating: avg,
         alreadyRated,
+        price,
       };
     });
 
@@ -204,6 +211,15 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {role === 'Koch' && (
+        <TouchableOpacity
+          style={[styles.button, { alignSelf: 'center', marginBottom: 10 }]}
+          onPress={() => router.push('/chef')}
+        >
+          <Text style={styles.buttonText}>👨‍🍳 Zum Koch-Dashboard</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Datumsauswahl */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
         <Text style={styles.dateText}>{format(selectedDate, 'EEEE, dd.MM.yyyy')}</Text>
@@ -237,6 +253,11 @@ export default function HomeScreen() {
                 <View>
                   <Text style={styles.ratePrompt}>Jetzt bewerten:</Text>
                   <StarRatingInput onRate={(val) => submitRating(parseInt(item.id), val)} />
+                </View>
+              )}
+              {role !== 'Koch' && (
+                <View style={styles.priceBadge}>
+                  <Text style={styles.priceText}>{item.price?.toFixed(2)} €</Text>
                 </View>
               )}
             </View>

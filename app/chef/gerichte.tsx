@@ -31,6 +31,7 @@ export default function GerichteScreen() {
   const fetchGerichte = async () => {
     const { data, error } = await supabase.from('Gericht').select('*');
     if (!error && data) {
+      console.log('Geladene Gerichte:', data);
       const mapped = data.map((g) => ({
         id: g.Gericht_id,
         name: g.Gericht_Name,
@@ -52,12 +53,14 @@ export default function GerichteScreen() {
 
     if (selectedGericht) {
       // Bearbeiten
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('Gericht')
         .update({ Gericht_Name: name, Beschreibung: beschreibung })
         .eq('Gericht_id', selectedGericht.id);
 
+      console.log('Update response:', data);
       if (error) {
+        console.error('Fehler beim Aktualisieren:', error);
         Alert.alert('Fehler beim Aktualisieren');
       } else {
         Alert.alert('Aktualisiert', 'Gericht wurde gespeichert.');
@@ -66,11 +69,13 @@ export default function GerichteScreen() {
       }
     } else {
       // Neu anlegen
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('Gericht')
         .insert({ Gericht_Name: name, Beschreibung: beschreibung });
 
+      console.log('Insert response:', data);
       if (error) {
+        console.error('Fehler beim Anlegen:', error);
         Alert.alert('Fehler beim Anlegen');
       } else {
         Alert.alert('Erstellt', 'Gericht wurde hinzugefügt.');
@@ -95,8 +100,14 @@ export default function GerichteScreen() {
         text: 'Löschen',
         style: 'destructive',
         onPress: async () => {
-          const { error } = await supabase.from('Gericht').delete().eq('Gericht_id', id);
+          const { data, error } = await supabase
+            .from('Gericht')
+            .delete()
+            .eq('Gericht_id', id);
+
+          console.log('Delete response:', data);
           if (error) {
+            console.error('Fehler beim Löschen:', error);
             Alert.alert('Fehler beim Löschen');
           } else {
             Alert.alert('Gelöscht');
@@ -120,13 +131,27 @@ export default function GerichteScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* 🧭 Navigation */}
-      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
-        <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
+      <View
+        style={[
+          styles.navBar,
+          { justifyContent: 'space-between', alignItems: 'center', gap: 20 },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.replace('/chef')}
+          style={{ flex: 1 }}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
-          <Image source={require('@/assets/icon.png')} style={styles.logo} />
+        <TouchableOpacity
+          onPress={() => router.replace('/home')}
+          style={{ flex: 1, alignItems: 'center' }}
+        >
+          <Image
+            source={require('@/assets/icon.png')}
+            style={styles.logo}
+          />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }} />
@@ -154,21 +179,30 @@ export default function GerichteScreen() {
         <TouchableOpacity
           onPress={handleSpeichern}
           disabled={isSubmitting}
-          style={[styles.menuCard, { backgroundColor: colors.primary, marginTop: 10 }]}
+          style={[
+            styles.button,
+            { backgroundColor: colors.primary, marginTop: 10 },
+          ]}
         >
-          <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
+          <Text
+            style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}
+          >
             {selectedGericht ? 'Änderungen speichern' : 'Gericht anlegen'}
           </Text>
         </TouchableOpacity>
 
         {selectedGericht && (
           <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
-            <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
+            <Text style={{ textAlign: 'center', color: colors.primary }}>
+              Abbrechen
+            </Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <Text style={[styles.menuTitle, { marginTop: 30 }]}>📋 Alle Gerichte</Text>
+      <Text style={[styles.menuTitle, { marginTop: 30 }]}>
+        📋 Alle Gerichte
+      </Text>
 
       <TextInput
         placeholder="Nach Namen suchen..."
@@ -179,10 +213,15 @@ export default function GerichteScreen() {
 
       <View style={{ marginTop: 10 }}>
         {gefilterteGerichte.length === 0 ? (
-          <Text style={{ fontStyle: 'italic', color: 'gray' }}>Keine Treffer</Text>
+          <Text style={{ fontStyle: 'italic', color: 'gray' }}>
+            Keine Treffer
+          </Text>
         ) : (
           gefilterteGerichte.map((gericht) => (
-            <View key={gericht.id} style={[styles.menuCard, { marginBottom: 8 }]}>
+            <View
+              key={gericht.id}
+              style={[styles.menuCard, { marginBottom: 8 }]}
+            >
               <Text style={{ fontWeight: 'bold' }}>{gericht.name}</Text>
               <Text>{gericht.beschreibung}</Text>
 
