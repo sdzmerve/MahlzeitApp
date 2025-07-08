@@ -2,6 +2,9 @@
   "expo": {
     "name": "MahlzeitApp",
     "slug": "mahlzeitapp",
-    "scheme": "mahlzeitapp"
+    "scheme": "mahlzeitapp",
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

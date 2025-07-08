@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabaseClient';
-import { useUserRole } from '@/lib/useUserRole';
 import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +18,6 @@ import { Picker } from '@react-native-picker/picker';
 import { format } from 'date-fns';
 
 export default function TagesmenueScreen() {
-  const { loading } = useUserRole();
   const router = useRouter();
 
   const [menues, setMenues] = useState<any[]>([]);
@@ -108,8 +106,6 @@ export default function TagesmenueScreen() {
   const gefiltert = tagesmenues.filter((t) =>
     t.Menue?.Gericht?.Gericht_Name?.toLowerCase().includes(search.toLowerCase())
   );
-
-  if (loading) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

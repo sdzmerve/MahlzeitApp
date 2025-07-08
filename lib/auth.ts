@@ -12,9 +12,18 @@ export const login = async (email: string, password: string) => {
     password,
   });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
+  const user = data.user;
+  if (!user) throw new Error("Kein Benutzer gefunden");
+
+  // 🧠 Rolle bestimmen
+  let role = 'Gast';
+  if (email.endsWith('@student.de')) role = 'Student';
+  else if (email.endsWith('@dozent.de')) role = 'Dozent';
+  else if (email.endsWith('@mensa.de')) role = 'Koch';
+
+  // 📥 Nur beim ersten Login in user_roles einfügen
+  await insertRoleIfNotExists(user.id, role);
 
   return data;
 };
@@ -35,34 +44,70 @@ export const logout = async () => {
  * @param password Das Passwort
  * @param role Die automatisch ermittelte Rolle
  */
-export async function register(email: string, password: string, role: string) {
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+export async function register(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({ email, password });
 
-  if (signUpError) {
-    console.error('Fehler beim SignUp:', signUpError);
-    throw signUpError;
-  }
+  if (error) throw error;
+  if (!data.user) throw new Error('Benutzer wurde nicht erstellt.');
 
-  const user = signUpData.user;
-  if (!user) {
-    throw new Error('Benutzer wurde nicht erstellt.');
-  }
+  // Wichtig: NICHT direkt einloggen und KEIN Insert!
+  // Stattdessen nur sagen: bitte E-Mail bestätigen
 
-  // Insert in eigene User-Tabelle
-  const { error: insertError } = await supabase.from("User").insert({
-    user_id: user.id,
-    "E-Mail-Adresse": email,
-    role: role,
-  });
-
-  if (insertError) {
-    console.error('Fehler beim Einfügen in die User-Tabelle:', insertError);
-    throw insertError;
-  }
-
-  return user;
+  return data.user;
 }
+
+/**
+ * Setzt Rolle, wenn nicht bereits vorhanden
+ */
+export const insertRoleIfNotExists = async (user_id: string, role: string) => {
+  // Zuerst prüfen, ob Rolle bereits existiert
+  const { data: existingRoles, error: fetchError } = await supabase
+    .from("user_roles")
+    .select("*")
+    .eq("user_id", user_id)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("❌ Fehler beim Abrufen von user_roles:", fetchError);
+    throw fetchError;
+  }
+
+  // Wenn keine Rolle vorhanden → einfügen
+  if (!existingRoles) {
+    const { error: insertError } = await supabase.from("user_roles").insert({
+      user_id,
+      role,
+    });
+
+    if (insertError) {
+      console.error("❌ Fehler beim Einfügen in user_roles:", insertError);
+      throw insertError;
+    }
+
+    console.log("✅ Rolle wurde gesetzt:", role);
+  } else {
+    console.log("ℹ️ Rolle existiert bereits:", existingRoles.role);
+  }
+};
+
+/**
+ * Liest die Rolle eines Benutzers aus der Tabelle user_roles
+ */
+export const getUserRole = async (user_id: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user_id)
+    .single();
+
+  if (error) {
+    console.error('❌ Fehler beim Abrufen der Rolle:', error);
+    throw error;
+  }
+
+  return data?.role ?? 'Gast';
+};
+
+
+
 

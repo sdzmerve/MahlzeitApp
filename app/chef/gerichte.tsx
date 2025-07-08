@@ -13,10 +13,8 @@ import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
-import { useUserRole } from '@/lib/useUserRole';
 
 export default function GerichteScreen() {
-  const { loading } = useUserRole();
   const router = useRouter();
 
   const [gerichte, setGerichte] = useState<any[]>([]);
@@ -118,8 +116,6 @@ export default function GerichteScreen() {
   const gefilterteGerichte = gerichte.filter((g) =>
     g.name.toLowerCase().includes(search.toLowerCase())
   );
-
-  if (loading) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

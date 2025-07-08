@@ -1,15 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabaseClient';
-import { useUserRole } from '@/lib/useUserRole';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { colors } from '@/styles/colors';
 
 export default function KochDashboard() {
   const router = useRouter();
-  const { role, loading } = useUserRole();
+  const [allowed, setAllowed] = useState(false);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: user } = await supabase.auth.getUser();
+      const userId = user?.user?.id;
+      if (!userId) return router.replace('/auth');
+
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data || data.role !== 'Koch') {
+        Alert.alert('Zugriff verweigert', 'Nur Köche dürfen diese Seite sehen.');
+        return router.replace('/home');
+      }
+
+      setAllowed(true);
+    };
+
+    checkRole();
+  }, []);
+
+  if (!allowed) return null; 
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -22,15 +46,6 @@ export default function KochDashboard() {
       { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
     ]);
   };
-
-  useEffect(() => {
-    if (!loading && role !== 'Koch') {
-      Alert.alert('Zugriff verweigert', 'Nur Köche dürfen diese Seite sehen.');
-      router.replace('/home');
-    }
-  }, [role, loading]);
-
-  if (loading || role !== 'Koch') return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

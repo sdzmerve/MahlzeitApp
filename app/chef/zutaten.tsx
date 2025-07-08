@@ -13,10 +13,8 @@ import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
-import { useUserRole } from '@/lib/useUserRole';
 
 export default function ZutatenScreen() {
-  const { loading } = useUserRole();
   const router = useRouter();
 
   const [zutaten, setZutaten] = useState<any[]>([]);
@@ -91,9 +89,7 @@ export default function ZutatenScreen() {
   const gefiltert = zutaten.filter((z) =>
     z.Zutat_name.toLowerCase().includes(search.toLowerCase())
   );
-
-  if (loading) return null;
-
+  
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* 🧭 Navbar */}

@@ -1,14 +1,14 @@
-import { View, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert,} from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
-import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { format } from 'date-fns';
 import { supabase } from '@/lib/supabaseClient';
 import StarRatingInput from '@/components/StarRatingInput';
 import { colors } from '@/styles/colors';
-import { useUserRole } from '@/lib/useUserRole';
+import { sharedStyles as styles } from '@/styles/sharedStyles';
+import { getUserRole } from '@/lib/auth';
 
 type Menu = {
   id: string;
@@ -28,7 +28,22 @@ export default function HomeScreen() {
   const [mensen, setMensen] = useState<{ id: number; name: string }[]>([]);
   const [selectedMensa, setSelectedMensa] = useState<{ id: number; name: string } | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
-  const { role, userId, loading } = useUserRole();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<string>('Gast');
+
+  useEffect(() => {
+    const getUserInfo = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        const role = await getUserRole(user.id);
+        setRole(role);
+      }
+    };
+    getUserInfo();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -36,24 +51,24 @@ export default function HomeScreen() {
   };
 
   const handleLogoutPrompt = () => {
-    Alert.alert('Abmelden', 'Möchtest du dich wirklich abmelden?', [
-      { text: 'Abbrechen', style: 'cancel' },
-      { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
-    ]);
+    Alert.alert(
+      'Abmelden',
+      'Möchtest du dich wirklich abmelden?',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
+      ],
+      { cancelable: true }
+    );
   };
 
   useEffect(() => {
     const fetchMensen = async () => {
-      const { data, error } = await supabase.from('Mensa').select('Mensa_id, Mensa_name');
-      if (!error && data) {
-        const formatted = data.map((m) => ({
-          id: m.Mensa_id,
-          name: m.Mensa_name,
-        }));
+      const { data } = await supabase.from('Mensa').select('Mensa_id, Mensa_name');
+      if (data) {
+        const formatted = data.map((m) => ({ id: m.Mensa_id, name: m.Mensa_name }));
         setMensen(formatted);
-        if (formatted.length > 0) {
-          setSelectedMensa(formatted[0]);
-        }
+        if (formatted.length > 0) setSelectedMensa(formatted[0]);
       }
     };
     fetchMensen();
@@ -62,18 +77,13 @@ export default function HomeScreen() {
   useEffect(() => {
     const updateUserMensa = async () => {
       if (!selectedMensa || !userId) return;
-
       const { data: existingUser } = await supabase
         .from('"User"')
         .select('Hauptmensa')
         .eq('user_id', userId)
         .single();
-
       if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa.name) {
-        await supabase
-          .from('"User"')
-          .update({ Hauptmensa: selectedMensa.name })
-          .eq('user_id', userId);
+        await supabase.from('"User"').update({ Hauptmensa: selectedMensa.name }).eq('user_id', userId);
       }
     };
     updateUserMensa();
@@ -81,14 +91,13 @@ export default function HomeScreen() {
 
   const fetchMenus = async () => {
     setLoadingMenus(true);
-
     if (!selectedMensa || !userId) {
       setMenus([]);
       setLoadingMenus(false);
       return;
     }
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('TagesMenue')
       .select(`
         datum,
@@ -96,35 +105,18 @@ export default function HomeScreen() {
           Menue_id,
           istVegan,
           Bild,
-          Gericht (
-            Gericht_Name,
-            Beschreibung
-          ),
-          MenueBewertung (
-            Rating,
-            user_id
-          )
+          Gericht ( Gericht_Name, Beschreibung ),
+          MenueBewertung ( Rating, user_id )
         )
       `)
       .eq('datum', format(selectedDate, 'yyyy-MM-dd'))
       .eq('mensa_id', selectedMensa.id);
 
-    if (error || !data) {
-      console.log('Menus error:', error);
-      console.log('Menus response:', data);
-      setMenus([]);
-      setLoadingMenus(false);
-      return;
-    }
-
-    const menusMapped = data.map((entry: any) => {
+    const menusMapped = (data || []).map((entry: any) => {
       const gericht = entry.menue?.Gericht;
       const ratings = Array.isArray(entry.menue?.MenueBewertung) ? entry.menue.MenueBewertung : [];
-      const average =
-        ratings.length > 0
-          ? ratings.reduce((sum: number, r: { Rating: number }) => sum + r.Rating, 0) / ratings.length
-          : 0;
-      const alreadyRated = ratings.some((r: { user_id: string }) => r.user_id === userId);
+      const avg = ratings.length > 0 ? ratings.reduce((s: number, r: any) => s + r.Rating, 0) / ratings.length : 0;
+      const alreadyRated = ratings.some((r: any) => r.user_id === userId);
 
       return {
         id: entry.menue?.Menue_id ?? entry.menue_id,
@@ -132,7 +124,7 @@ export default function HomeScreen() {
         description: gericht?.Beschreibung ?? '',
         image: entry.menue?.Bild,
         isVegan: entry.menue?.istVegan,
-        average_rating: average,
+        average_rating: avg,
         alreadyRated,
       };
     });
@@ -145,90 +137,77 @@ export default function HomeScreen() {
     fetchMenus();
   }, [selectedDate, selectedMensa, userId]);
 
-  const onChangeDate = (event: any, date?: Date) => {
+  const onChangeDate = (_: any, date?: Date) => {
     setShowDatePicker(false);
     if (date) setSelectedDate(date);
   };
 
   const submitRating = async (menuId: number, rating: number) => {
     if (!userId) {
-      Alert.alert('Fehler', 'Du musst eingeloggt sein, um zu bewerten.');
+      Alert.alert('Fehler', 'Du musst eingeloggt sein.');
       return;
     }
-
     const { data: existing } = await supabase
       .from('MenueBewertung')
       .select('*')
       .eq('user_id', userId)
       .eq('Menue_id', menuId);
-
     if (existing && existing.length > 0) {
       Alert.alert('Schon bewertet', 'Du hast dieses Menü bereits bewertet.');
       return;
     }
 
-    const { error } = await supabase.from('MenueBewertung').insert([{
-      Menue_id: menuId,
-      Rating: rating,
-      user_id: userId,
-      Kommentar: '',
-    }]);
-
-    if (error) {
-      Alert.alert('Fehler', 'Bewertung konnte nicht gespeichert werden.');
-    } else {
-      Alert.alert('Danke!', 'Deine Bewertung wurde gespeichert.');
-      fetchMenus();
-    }
+    await supabase.from('MenueBewertung').insert([
+      {
+        Menue_id: menuId,
+        Rating: rating,
+        user_id: userId,
+        Kommentar: '',
+      },
+    ]);
+    fetchMenus();
   };
 
   return (
     <View style={styles.container}>
+      {/* Standort Auswahl */}
       {showLocationSelector && (
-        <View style={{
-          position: 'absolute', top: 100, left: 20, right: 20,
-          backgroundColor: '#fff', padding: 16, borderRadius: 12,
-          shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
-          elevation: 10, zIndex: 1000,
-        }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>Standort auswählen</Text>
+        <View style={styles.locationSelector}>
+          <Text style={styles.locationTitle}>Standort auswählen</Text>
           {mensen.map((m) => (
-            <TouchableOpacity key={m.id} onPress={() => {
-              setSelectedMensa(m);
-              setShowLocationSelector(false);
-            }} style={{ paddingVertical: 10, borderBottomColor: '#eee', borderBottomWidth: 1 }}>
-              <Text>{m.name}</Text>
+            <TouchableOpacity
+              key={m.id}
+              onPress={() => {
+                setSelectedMensa(m);
+                setShowLocationSelector(false);
+              }}
+            >
+              <Text style={styles.locationOption}>{m.name}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity onPress={() => setShowLocationSelector(false)} style={{ marginTop: 10 }}>
-            <Text style={{ color: 'red', textAlign: 'right' }}>Abbrechen</Text>
+          <TouchableOpacity onPress={() => setShowLocationSelector(false)}>
+            <Text style={styles.locationCancel}>Abbrechen</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* 🧭 NavBar: zentriertes Logo */}
-      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
-        <TouchableOpacity onPress={() => setShowLocationSelector(true)} style={{ flex: 1 }}>
-          <Text style={[styles.location]} numberOfLines={1}>
-            {selectedMensa ? `📍 ${selectedMensa.name}` : '📍 Mensa wählen'}
-          </Text>
+      {/* Header */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
+          <Ionicons name="location-outline" size={26} color={colors.primary} />
         </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
-          <Image source={require('@/assets/icon.png')} style={[styles.logo, { alignSelf: 'center' }]} />
+        <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
+          <Image source={require('@/assets/icon.png')} style={styles.logo} />
         </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleLogoutPrompt} style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
+        <TouchableOpacity onPress={handleLogoutPrompt}>
+          <Ionicons name="log-out-outline" size={26} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
+      {/* Datumsauswahl */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.dateText}>
-          {format(selectedDate, 'EEEE, dd.MM.yyyy')}
-        </Text>
+        <Text style={styles.dateText}>{format(selectedDate, 'EEEE, dd.MM.yyyy')}</Text>
       </TouchableOpacity>
-
       {showDatePicker && (
         <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onChangeDate} />
       )}
@@ -238,7 +217,7 @@ export default function HomeScreen() {
       ) : (
         <FlatList
           data={menus}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.menuList}
           renderItem={({ item }) => (
             <View style={styles.menuCard}>
@@ -247,19 +226,17 @@ export default function HomeScreen() {
               </Text>
               <Text style={styles.menuDescription}>{item.description}</Text>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 6 }}>
-                <Text style={{ marginRight: 6 }}>Ø {item.average_rating.toFixed(1)} / 5</Text>
+              <View style={styles.ratingRow}>
+                <Text style={{ fontWeight: 'bold', marginRight: 4 }}>Ø {item.average_rating.toFixed(1)}</Text>
                 <StarRatingInput initialRating={item.average_rating} editable={false} />
               </View>
 
               {item.alreadyRated ? (
-                <Text style={{ fontStyle: 'italic', color: 'gray' }}>Du hast bereits bewertet</Text>
+                <Text style={styles.ratedText}>Du hast bereits bewertet</Text>
               ) : (
-                <View style={{ marginTop: 4 }}>
-                  <Text style={{ fontSize: 12, marginBottom: 4, color: '#444' }}>Hier abstimmen →</Text>
-                  <StarRatingInput
-                    onRate={(selectedRating) => submitRating(parseInt(item.id), selectedRating)}
-                  />
+                <View>
+                  <Text style={styles.ratePrompt}>Jetzt bewerten:</Text>
+                  <StarRatingInput onRate={(val) => submitRating(parseInt(item.id), val)} />
                 </View>
               )}
             </View>

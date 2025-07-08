@@ -52,8 +52,7 @@ export default function RegisterScreen() {
 
   setLoading(true);
   try {
-    const role = determineRoleFromEmail(email);
-    await register(email, password, role);
+    await register(email, password);
     Alert.alert('Erfolg', 'Bitte bestätige deine E-Mail.');
     router.replace('/auth');
   } catch (error: any) {

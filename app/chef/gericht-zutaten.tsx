@@ -14,10 +14,8 @@ import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
-import { useUserRole } from '@/lib/useUserRole';
 
 export default function GerichtZutatenScreen() {
-  const { loading } = useUserRole();
   const router = useRouter();
 
   const [gerichte, setGerichte] = useState<any[]>([]);
@@ -90,8 +88,6 @@ export default function GerichtZutatenScreen() {
 
     if (!error) fetchZugewieseneZutaten(selectedGericht.Gericht_id);
   };
-
-  if (loading) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

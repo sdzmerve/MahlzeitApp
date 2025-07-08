@@ -1,20 +1,38 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useUserRole } from '@/lib/useUserRole';
+import { supabase } from '@/lib/supabaseClient';
+import { getUserRole } from '@/lib/auth';
 
 export default function Index() {
   const router = useRouter();
-  const { role, loading } = useUserRole();
 
   useEffect(() => {
-    if (loading) return;
+    const redirectBasedOnRole = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (role === 'Koch') {
-      router.replace('/chef');
-    } else {
-      router.replace('/home');
-    }
-  }, [role, loading]);
+      if (!user) {
+        router.replace('/auth');
+        return;
+      }
 
-  return null; // kein UI, nur Redirect
+      try {
+        const role = await getUserRole(user.id);
+
+        if (role === 'Koch') {
+          router.replace('/chef');
+        } else {
+          router.replace('/home');
+        }
+      } catch (err) {
+        console.error('Fehler bei der Rollenprüfung', err);
+        router.replace('/home'); // Fallback
+      }
+    };
+
+    redirectBasedOnRole();
+  }, []);
+
+  return null; // Kein UI
 }

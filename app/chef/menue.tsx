@@ -13,11 +13,9 @@ import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
-import { useUserRole } from '@/lib/useUserRole';
 import { Picker } from '@react-native-picker/picker';
 
 export default function MenueScreen() {
-  const { loading } = useUserRole();
   const router = useRouter();
 
   const [gerichte, setGerichte] = useState<any[]>([]);
@@ -106,8 +104,6 @@ export default function MenueScreen() {
   const gefiltert = menues.filter((m) =>
     m.Gericht?.Gericht_Name?.toLowerCase().includes(search.toLowerCase())
   );
-
-  if (loading) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
