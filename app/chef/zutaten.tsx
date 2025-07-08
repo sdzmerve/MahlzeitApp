@@ -3,161 +3,160 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
-  Button,
-  Alert,
   ScrollView,
+  TouchableOpacity,
+  Alert,
+  Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabaseClient';
-import { useUserRole } from '@/lib/useUserRole';
+import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
-
-type Zutat = {
-  id: number;
-  name: string;
-  kcal: number;
-  carbs: number;
-  protein: number;
-  fats: number;
-};
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function ZutatenScreen() {
+  const { loading } = useUserRole();
   const router = useRouter();
-  const { role, loading } = useUserRole();
 
-  const [zutaten, setZutaten] = useState<Zutat[]>([]);
-  const [name, setName] = useState('');
-  const [kcal, setKcal] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [protein, setProtein] = useState('');
-  const [fats, setFats] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [zutaten, setZutaten] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [zutatName, setZutatName] = useState('');
+  const [selectedZutat, setSelectedZutat] = useState<any | null>(null);
 
   useEffect(() => {
     fetchZutaten();
   }, []);
 
   const fetchZutaten = async () => {
-    const { data, error } = await supabase.from('Zutaten').select('*');
-    if (!error && data) {
-      const mapped = data.map((z) => ({
-        id: z.Zutat_id,
-        name: z.Zutat_name,
-        kcal: z.Zutat_kcal,
-        carbs: z.Zutat_carbs,
-        protein: z.Zutat_protein,
-        fats: z.Zutat_fats,
-      }));
-      setZutaten(mapped);
-    }
+    const { data } = await supabase.from('Zutaten').select('*');
+    if (data) setZutaten(data);
   };
 
-  const handleAddZutat = async () => {
-    if (!name.trim()) {
+  const resetForm = () => {
+    setZutatName('');
+    setSelectedZutat(null);
+  };
+
+  const handleSpeichern = async () => {
+    if (!zutatName.trim()) {
       Alert.alert('Fehler', 'Name darf nicht leer sein.');
       return;
     }
 
-    setSubmitting(true);
+    if (selectedZutat) {
+      // Bearbeiten
+      const { error } = await supabase
+        .from('Zutaten')
+        .update({ Zutat_name: zutatName })
+        .eq('Zutat_id', selectedZutat.Zutat_id);
 
-    const { error } = await supabase.from('Zutaten').insert({
-      Zutat_name: name,
-      Zutat_kcal: parseFloat(kcal) || 0,
-      Zutat_carbs: parseFloat(carbs) || 0,
-      Zutat_protein: parseFloat(protein) || 0,
-      Zutat_fats: parseFloat(fats) || 0,
-    });
-
-    if (error) {
-      Alert.alert('Fehler', 'Zutat konnte nicht gespeichert werden.');
-      console.error(error);
+      if (error) Alert.alert('Fehler beim Aktualisieren');
+      else {
+        Alert.alert('Zutat aktualisiert!');
+        resetForm();
+        fetchZutaten();
+      }
     } else {
-      Alert.alert('Erfolg', 'Zutat hinzugefügt!');
-      setName('');
-      setKcal('');
-      setCarbs('');
-      setProtein('');
-      setFats('');
-      fetchZutaten();
+      // Neu
+      const { error } = await supabase.from('Zutaten').insert({ Zutat_name: zutatName });
+      if (error) Alert.alert('Fehler beim Speichern');
+      else {
+        Alert.alert('Zutat hinzugefügt!');
+        resetForm();
+        fetchZutaten();
+      }
     }
-
-    setSubmitting(false);
   };
+
+  const handleBearbeiten = (z: any) => {
+    setSelectedZutat(z);
+    setZutatName(z.Zutat_name);
+  };
+
+  const handleLöschen = async (id: number) => {
+    Alert.alert('Löschen?', 'Zutat wirklich löschen?', [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: 'Löschen',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('Zutaten').delete().eq('Zutat_id', id);
+          if (!error) fetchZutaten();
+        },
+      },
+    ]);
+  };
+
+  const gefiltert = zutaten.filter((z) =>
+    z.Zutat_name.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (loading) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={{ fontSize: 22, marginBottom: 12 }}>Zutaten verwalten</Text>
-
-      <TextInput
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="kcal"
-        value={kcal}
-        onChangeText={setKcal}
-        keyboardType="numeric"
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Kohlenhydrate (g)"
-        value={carbs}
-        onChangeText={setCarbs}
-        keyboardType="numeric"
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Protein (g)"
-        value={protein}
-        onChangeText={setProtein}
-        keyboardType="numeric"
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Fett (g)"
-        value={fats}
-        onChangeText={setFats}
-        keyboardType="numeric"
-        style={styles.input}
-      />
-
-      <Button
-        title="Zutat hinzufügen"
-        onPress={handleAddZutat}
-        disabled={submitting}
-        color={colors.primary}
-      />
-
-      <View style={{ marginTop: 24 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>
-          Vorhandene Zutaten:
-        </Text>
-        <FlatList
-          data={zutaten}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View
-              style={{
-                padding: 12,
-                borderWidth: 1,
-                borderColor: '#eee',
-                borderRadius: 8,
-                marginBottom: 8,
-                backgroundColor: '#fafafa',
-              }}
-            >
-              <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-              <Text>{item.kcal} kcal – C:{item.carbs}g / P:{item.protein}g / F:{item.fats}g</Text>
-            </View>
-          )}
-        />
+      {/* 🧭 Navbar */}
+      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
+        <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
+          <Image source={require('@/assets/icon.png')} style={styles.logo} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }} />
       </View>
+
+      <Text style={styles.menuTitle}>
+        {selectedZutat ? '✏️ Zutat bearbeiten' : '➕ Neue Zutat'}
+      </Text>
+
+      <View style={[styles.menuCard, { marginTop: 20 }]}>
+        <TextInput
+          placeholder="Zutat"
+          value={zutatName}
+          onChangeText={setZutatName}
+          style={styles.input}
+        />
+
+        <TouchableOpacity
+          onPress={handleSpeichern}
+          style={[styles.menuCard, { backgroundColor: colors.primary, marginTop: 10 }]}
+        >
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
+            {selectedZutat ? 'Speichern' : 'Anlegen'}
+          </Text>
+        </TouchableOpacity>
+
+        {selectedZutat && (
+          <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
+            <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <Text style={[styles.menuTitle, { marginTop: 30 }]}>🧂 Zutatenliste</Text>
+
+      <TextInput
+        placeholder="Suchen..."
+        value={search}
+        onChangeText={setSearch}
+        style={[styles.input, { marginTop: 10 }]}
+      />
+
+      {gefiltert.map((z) => (
+        <View key={z.Zutat_id} style={[styles.menuCard, { marginBottom: 8 }]}>
+          <Text>{z.Zutat_name}</Text>
+          <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
+            <TouchableOpacity onPress={() => handleBearbeiten(z)}>
+              <Text style={{ color: colors.primary }}>Bearbeiten</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleLöschen(z.Zutat_id)}>
+              <Text style={{ color: 'red' }}>Löschen</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
     </ScrollView>
   );
 }

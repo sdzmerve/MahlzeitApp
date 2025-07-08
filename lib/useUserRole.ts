@@ -10,7 +10,11 @@ export function useUserRole() {
     const fetchUserRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const uid = session?.user?.id;
-      if (!uid) return;
+      
+    if (!uid) {
+      setLoading(false); // <- WICHTIG!
+      return;
+    }
 
       setUserId(uid);
 

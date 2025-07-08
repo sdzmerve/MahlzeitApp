@@ -14,7 +14,19 @@ export const sharedStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-    input: {
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  input: {
     borderWidth: 1,
     borderColor: colors.border ?? '#ccc',
     backgroundColor: colors.inputBackground ?? '#fff',

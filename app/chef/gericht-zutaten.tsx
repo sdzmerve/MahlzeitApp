@@ -2,26 +2,29 @@ import { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Button,
   TextInput,
   Alert,
   ScrollView,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabaseClient';
-import { useUserRole } from '@/lib/useUserRole';
 import { useRouter } from 'expo-router';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/styles/colors';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function GerichtZutatenScreen() {
-  const { role, loading } = useUserRole();
+  const { loading } = useUserRole();
   const router = useRouter();
 
   const [gerichte, setGerichte] = useState<any[]>([]);
   const [zutaten, setZutaten] = useState<any[]>([]);
 
-  const [selectedGericht, setSelectedGericht] = useState<number | null>(null);
-  const [selectedZutat, setSelectedZutat] = useState<number | null>(null);
+  const [selectedGericht, setSelectedGericht] = useState<any | null>(null);
+  const [selectedZutat, setSelectedZutat] = useState<any | null>(null);
   const [menge, setMenge] = useState('');
   const [einheit, setEinheit] = useState('');
 
@@ -33,7 +36,7 @@ export default function GerichtZutatenScreen() {
 
   useEffect(() => {
     if (selectedGericht) {
-      fetchZugewieseneZutaten(selectedGericht);
+      fetchZugewieseneZutaten(selectedGericht.Gericht_id);
     }
   }, [selectedGericht]);
 
@@ -45,21 +48,12 @@ export default function GerichtZutatenScreen() {
   };
 
   const fetchZugewieseneZutaten = async (gerichtId: number) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('GerichtZutaten')
-      .select(`
-        Zutaten_id,
-        Menge,
-        Einheit,
-        Zutaten (
-          Zutat_name
-        )
-      `)
+      .select(`*, Zutaten (Zutat_name)`)
       .eq('Gericht_id', gerichtId);
 
-    if (!error && data) {
-      setZuweisungen(data);
-    }
+    if (data) setZuweisungen(data);
   };
 
   const handleZuweisung = async () => {
@@ -69,84 +63,108 @@ export default function GerichtZutatenScreen() {
     }
 
     const { error } = await supabase.from('GerichtZutaten').insert({
-      Gericht_id: selectedGericht,
-      Zutaten_id: selectedZutat,
+      Gericht_id: selectedGericht.Gericht_id,
+      Zutaten_id: selectedZutat.Zutat_id,
       Menge: parseFloat(menge),
       Einheit: einheit,
     });
 
     if (error) {
       Alert.alert('Fehler', 'Zutat konnte nicht zugewiesen werden.');
-      console.error(error);
     } else {
       Alert.alert('Erfolg', 'Zutat zugewiesen!');
       setMenge('');
       setEinheit('');
-      fetchZugewieseneZutaten(selectedGericht);
+      fetchZugewieseneZutaten(selectedGericht.Gericht_id);
     }
+  };
+
+  const handleLöschen = async (zutatenId: number) => {
+    if (!selectedGericht) return;
+
+    const { error } = await supabase
+      .from('GerichtZutaten')
+      .delete()
+      .eq('Gericht_id', selectedGericht.Gericht_id)
+      .eq('Zutaten_id', zutatenId);
+
+    if (!error) fetchZugewieseneZutaten(selectedGericht.Gericht_id);
   };
 
   if (loading) return null;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={{ fontSize: 22, marginBottom: 12 }}>Zutaten zu Gericht zuweisen</Text>
+      {/* 🧭 Navbar */}
+      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
+        <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
+          <Image source={require('@/assets/icon.png')} style={styles.logo} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }} />
+      </View>
 
-      <Text>Gericht wählen:</Text>
-      <Picker
-        selectedValue={selectedGericht}
-        onValueChange={(value) => setSelectedGericht(value)}
-      >
-        <Picker.Item label="Bitte wählen..." value={null} />
-        {gerichte.map((g) => (
-          <Picker.Item key={g.Gericht_id} label={g.Gericht_Name} value={g.Gericht_id} />
-        ))}
-      </Picker>
+      <Text style={styles.menuTitle}>🥣 Zutat zu Gericht zuweisen</Text>
 
-      <Text>Zutat wählen:</Text>
-      <Picker
-        selectedValue={selectedZutat}
-        onValueChange={(value) => setSelectedZutat(value)}
-      >
-        <Picker.Item label="Bitte wählen..." value={null} />
-        {zutaten.map((z) => (
-          <Picker.Item key={z.Zutat_id} label={z.Zutat_name} value={z.Zutat_id} />
-        ))}
-      </Picker>
+      <View style={[styles.menuCard, { marginTop: 20 }]}>
+        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Gericht wählen:</Text>
+        <Picker
+          selectedValue={selectedGericht}
+          onValueChange={(value) => setSelectedGericht(value)}
+        >
+          <Picker.Item label="Bitte wählen..." value={null} />
+          {gerichte.map((g) => (
+            <Picker.Item key={g.Gericht_id} label={g.Gericht_Name} value={g} />
+          ))}
+        </Picker>
 
-      <TextInput
-        placeholder="Menge (z. B. 200)"
-        value={menge}
-        onChangeText={setMenge}
-        keyboardType="numeric"
-        style={styles.input}
-      />
+        <Text style={{ fontWeight: '600', marginTop: 12 }}>Zutat wählen:</Text>
+        <Picker
+          selectedValue={selectedZutat}
+          onValueChange={(value) => setSelectedZutat(value)}
+        >
+          <Picker.Item label="Bitte wählen..." value={null} />
+          {zutaten.map((z) => (
+            <Picker.Item key={z.Zutat_id} label={z.Zutat_name} value={z} />
+          ))}
+        </Picker>
 
-      <TextInput
-        placeholder="Einheit (z. B. g, ml, Stück)"
-        value={einheit}
-        onChangeText={setEinheit}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Menge (z. B. 200)"
+          value={menge}
+          onChangeText={setMenge}
+          keyboardType="numeric"
+          style={styles.input}
+        />
 
-      <Button title="Zutat zuweisen" onPress={handleZuweisung} />
+        <TextInput
+          placeholder="Einheit (z. B. g, ml)"
+          value={einheit}
+          onChangeText={setEinheit}
+          style={styles.input}
+        />
+
+        <TouchableOpacity
+          onPress={handleZuweisung}
+          style={[styles.menuCard, { backgroundColor: colors.primary, marginTop: 10 }]}
+        >
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>Zuweisen</Text>
+        </TouchableOpacity>
+      </View>
 
       {zuweisungen.length > 0 && (
-        <View style={{ marginTop: 24 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>
-            Zugewiesene Zutaten:
-          </Text>
+        <View style={{ marginTop: 30 }}>
+          <Text style={[styles.menuTitle, { marginBottom: 10 }]}>📋 Zugewiesene Zutaten</Text>
+
           {zuweisungen.map((z, i) => (
-            <View
-              key={i}
-              style={{
-                padding: 10,
-                backgroundColor: '#f2f2f2',
-                borderRadius: 6,
-                marginBottom: 6,
-              }}
-            >
+            <View key={i} style={[styles.menuCard, { marginBottom: 8 }]}>
               <Text>{z.Zutaten?.Zutat_name}: {z.Menge} {z.Einheit}</Text>
+
+              <TouchableOpacity onPress={() => handleLöschen(z.Zutaten_id)} style={{ marginTop: 8 }}>
+                <Text style={{ color: 'red' }}>Löschen</Text>
+              </TouchableOpacity>
             </View>
           ))}
         </View>

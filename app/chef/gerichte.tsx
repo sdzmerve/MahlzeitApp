@@ -3,27 +3,28 @@ import {
   View,
   Text,
   TextInput,
-  Button,
-  FlatList,
   Alert,
   Image,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { supabase } from '@/lib/supabaseClient';
-import { useUserRole } from '@/lib/useUserRole';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { sharedStyles as styles } from '@/styles/sharedStyles';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function GerichteScreen() {
-  const { role, loading } = useUserRole();
+  const { loading } = useUserRole();
   const router = useRouter();
 
-  const [gerichte, setGerichte] = useState<{ id: number; name: string; beschreibung: string }[]>([]);
-  const [newName, setNewName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [gerichte, setGerichte] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedGericht, setSelectedGericht] = useState<any | null>(null);
+  const [name, setName] = useState('');
+  const [beschreibung, setBeschreibung] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchGerichte();
@@ -43,95 +44,164 @@ export default function GerichteScreen() {
     }
   };
 
-  const handleAddGericht = async () => {
-    if (!newName.trim()) {
-      Alert.alert('Fehler', 'Der Name darf nicht leer sein.');
+  const handleSpeichern = async () => {
+    if (!name.trim()) {
+      Alert.alert('Fehler', 'Name darf nicht leer sein.');
       return;
     }
 
-    setSubmitting(true);
+    setIsSubmitting(true);
 
-    const { error } = await supabase.from('Gericht').insert({
-      Gericht_Name: newName,
-      Beschreibung: newDescription,
-    });
+    if (selectedGericht) {
+      // Bearbeiten
+      const { error } = await supabase
+        .from('Gericht')
+        .update({ Gericht_Name: name, Beschreibung: beschreibung })
+        .eq('Gericht_id', selectedGericht.id);
 
-    if (error) {
-      Alert.alert('Fehler', 'Gericht konnte nicht gespeichert werden.');
-      console.error(error);
+      if (error) {
+        Alert.alert('Fehler beim Aktualisieren');
+      } else {
+        Alert.alert('Aktualisiert', 'Gericht wurde gespeichert.');
+        resetForm();
+        fetchGerichte();
+      }
     } else {
-      Alert.alert('Erfolg', 'Gericht hinzugefügt!');
-      setNewName('');
-      setNewDescription('');
-      fetchGerichte();
+      // Neu anlegen
+      const { error } = await supabase
+        .from('Gericht')
+        .insert({ Gericht_Name: name, Beschreibung: beschreibung });
+
+      if (error) {
+        Alert.alert('Fehler beim Anlegen');
+      } else {
+        Alert.alert('Erstellt', 'Gericht wurde hinzugefügt.');
+        resetForm();
+        fetchGerichte();
+      }
     }
 
-    setSubmitting(false);
+    setIsSubmitting(false);
   };
+
+  const handleBearbeiten = (gericht: any) => {
+    setSelectedGericht(gericht);
+    setName(gericht.name);
+    setBeschreibung(gericht.beschreibung);
+  };
+
+  const handleLöschen = async (id: number) => {
+    Alert.alert('Löschen?', 'Möchtest du dieses Gericht wirklich löschen?', [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: 'Löschen',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('Gericht').delete().eq('Gericht_id', id);
+          if (error) {
+            Alert.alert('Fehler beim Löschen');
+          } else {
+            Alert.alert('Gelöscht');
+            fetchGerichte();
+          }
+        },
+      },
+    ]);
+  };
+
+  const resetForm = () => {
+    setSelectedGericht(null);
+    setName('');
+    setBeschreibung('');
+  };
+
+  const gefilterteGerichte = gerichte.filter((g) =>
+    g.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (loading) return null;
 
   return (
-    <View style={styles.container}>
-      {/* ✅ NAVBAR */}
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* 🧭 Navigation */}
       <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
-        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
-          <Image source={require('@/assets/icon.png')} style={[styles.logo, { alignSelf: 'center' }]} />
+          <Image source={require('@/assets/icon.png')} style={styles.logo} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Ionicons name="arrow-back-circle-outline" size={28} color={colors.primary} />
-        </TouchableOpacity>
+
+        <View style={{ flex: 1 }} />
       </View>
 
-      {/* ✅ Eingabeformular */}
-      <View style={{ marginBottom: 24 }}>
-        <Text style={{ fontSize: 22, marginBottom: 12 }}>Neues Gericht hinzufügen</Text>
+      <Text style={styles.menuTitle}>
+        {selectedGericht ? '✏️ Gericht bearbeiten' : '➕ Neues Gericht'}
+      </Text>
 
+      <View style={[styles.menuCard, { marginTop: 20 }]}>
         <TextInput
           placeholder="Name"
-          value={newName}
-          onChangeText={setNewName}
+          value={name}
+          onChangeText={setName}
           style={styles.input}
         />
         <TextInput
           placeholder="Beschreibung"
-          value={newDescription}
-          onChangeText={setNewDescription}
-          multiline
-          numberOfLines={3}
+          value={beschreibung}
+          onChangeText={setBeschreibung}
           style={[styles.input, { height: 80 }]}
+          multiline
         />
 
-        <Button
-          title="Gericht speichern"
-          onPress={handleAddGericht}
-          disabled={submitting}
-          color={colors.primary}
-        />
+        <TouchableOpacity
+          onPress={handleSpeichern}
+          disabled={isSubmitting}
+          style={[styles.menuCard, { backgroundColor: colors.primary, marginTop: 10 }]}
+        >
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
+            {selectedGericht ? 'Änderungen speichern' : 'Gericht anlegen'}
+          </Text>
+        </TouchableOpacity>
+
+        {selectedGericht && (
+          <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
+            <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* ✅ Liste */}
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>Alle Gerichte:</Text>
-        <FlatList
-          data={gerichte}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={{
-              padding: 12,
-              borderWidth: 1,
-              borderColor: '#eee',
-              borderRadius: 8,
-              marginBottom: 8,
-              backgroundColor: '#fafafa',
-            }}>
-              <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-              <Text>{item.beschreibung}</Text>
+      <Text style={[styles.menuTitle, { marginTop: 30 }]}>📋 Alle Gerichte</Text>
+
+      <TextInput
+        placeholder="Nach Namen suchen..."
+        value={search}
+        onChangeText={setSearch}
+        style={[styles.input, { marginTop: 10 }]}
+      />
+
+      <View style={{ marginTop: 10 }}>
+        {gefilterteGerichte.length === 0 ? (
+          <Text style={{ fontStyle: 'italic', color: 'gray' }}>Keine Treffer</Text>
+        ) : (
+          gefilterteGerichte.map((gericht) => (
+            <View key={gericht.id} style={[styles.menuCard, { marginBottom: 8 }]}>
+              <Text style={{ fontWeight: 'bold' }}>{gericht.name}</Text>
+              <Text>{gericht.beschreibung}</Text>
+
+              <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
+                <TouchableOpacity onPress={() => handleBearbeiten(gericht)}>
+                  <Text style={{ color: colors.primary }}>Bearbeiten</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleLöschen(gericht.id)}>
+                  <Text style={{ color: 'red' }}>Löschen</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-        />
+          ))
+        )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
