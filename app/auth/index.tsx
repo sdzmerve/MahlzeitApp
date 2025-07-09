@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Alert, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, Image, TouchableOpacity, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useState } from 'react';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -48,42 +48,51 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('@/assets/icon.png')} style={styles.logo} />
-      <Text style={styles.title}>Login</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={80}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image source={require('@/assets/icon.png')} style={styles.logo} />
+        <Text style={styles.title}>Login</Text>
 
-      <Input
-        placeholder="E-Mail"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <Input
-        placeholder="Passwort"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <Input
+          placeholder="E-Mail"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <Input
+          placeholder="Passwort"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      <Button title="Login" onPress={handleLogin} loading={loading} />
+        <Button title="Login" onPress={handleLogin} loading={loading} />
 
-      <TouchableOpacity onPress={() => router.push('/auth/register')}>
-        <Text style={styles.link}>Noch keinen Account? Registrieren</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/auth/register')}>
+          <Text style={styles.link}>Noch keinen Account? Registrieren</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/auth/forgot-password')} style={{ marginTop: 12 }}>
-        <Text style={{ color: '#007AFF', textAlign: 'center' }}>
-          Passwort vergessen?
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity onPress={() => router.push('/auth/forgot-password')} style={{ marginTop: 12 }}>
+          <Text style={{ color: '#007AFF', textAlign: 'center' }}>
+            Passwort vergessen?
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: colors.background,
     padding: 24,
     justifyContent: 'center',

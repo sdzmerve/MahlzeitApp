@@ -6,6 +6,8 @@ import {
   Alert,
   Image,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
 } from 'react-native';
 import { supabase } from '@/lib/supabaseClient';
@@ -52,7 +54,6 @@ export default function GerichteScreen() {
     setIsSubmitting(true);
 
     if (selectedGericht) {
-      // Bearbeiten
       const { data, error } = await supabase
         .from('Gericht')
         .update({ Gericht_Name: name, Beschreibung: beschreibung })
@@ -68,7 +69,6 @@ export default function GerichteScreen() {
         fetchGerichte();
       }
     } else {
-      // Neu anlegen
       const { data, error } = await supabase
         .from('Gericht')
         .insert({ Gericht_Name: name, Beschreibung: beschreibung });
@@ -129,114 +129,123 @@ export default function GerichteScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* 🧭 Navigation */}
-      <View
-        style={[
-          styles.navBar,
-          { justifyContent: 'space-between', alignItems: 'center', gap: 20 },
-        ]}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={80}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        keyboardShouldPersistTaps="handled"
       >
-        <TouchableOpacity
-          onPress={() => router.replace('/chef')}
-          style={{ flex: 1 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.replace('/home')}
-          style={{ flex: 1, alignItems: 'center' }}
-        >
-          <Image
-            source={require('@/assets/icon.png')}
-            style={styles.logo}
-          />
-        </TouchableOpacity>
-
-        <View style={{ flex: 1 }} />
-      </View>
-
-      <Text style={styles.menuTitle}>
-        {selectedGericht ? '✏️ Gericht bearbeiten' : '➕ Neues Gericht'}
-      </Text>
-
-      <View style={[styles.menuCard, { marginTop: 20 }]}>
-        <TextInput
-          placeholder="Name"
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Beschreibung"
-          value={beschreibung}
-          onChangeText={setBeschreibung}
-          style={[styles.input, { height: 80 }]}
-          multiline
-        />
-
-        <TouchableOpacity
-          onPress={handleSpeichern}
-          disabled={isSubmitting}
+        {/* 🧭 Navigation */}
+        <View
           style={[
-            styles.button,
-            { backgroundColor: colors.primary, marginTop: 10 },
+            styles.navBar,
+            { justifyContent: 'space-between', alignItems: 'center', gap: 20 },
           ]}
         >
-          <Text
-            style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}
+          <TouchableOpacity
+            onPress={() => router.replace('/chef')}
+            style={{ flex: 1 }}
           >
-            {selectedGericht ? 'Änderungen speichern' : 'Gericht anlegen'}
-          </Text>
-        </TouchableOpacity>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
 
-        {selectedGericht && (
-          <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
-            <Text style={{ textAlign: 'center', color: colors.primary }}>
-              Abbrechen
+          <TouchableOpacity
+            onPress={() => router.replace('/home')}
+            style={{ flex: 1, alignItems: 'center' }}
+          >
+            <Image
+              source={require('@/assets/icon.png')}
+              style={styles.logo}
+            />
+          </TouchableOpacity>
+
+          <View style={{ flex: 1 }} />
+        </View>
+
+        <Text style={styles.menuTitle}>
+          {selectedGericht ? '✏️ Gericht bearbeiten' : '➕ Neues Gericht'}
+        </Text>
+
+        <View style={[styles.menuCard, { marginTop: 20 }]}>
+          <TextInput
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+          />
+          <TextInput
+            placeholder="Beschreibung"
+            value={beschreibung}
+            onChangeText={setBeschreibung}
+            style={[styles.input, { height: 80 }]}
+            multiline
+          />
+
+          <TouchableOpacity
+            onPress={handleSpeichern}
+            disabled={isSubmitting}
+            style={[
+              styles.button,
+              { backgroundColor: colors.primary, marginTop: 10 },
+            ]}
+          >
+            <Text
+              style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}
+            >
+              {selectedGericht ? 'Änderungen speichern' : 'Gericht anlegen'}
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
 
-      <Text style={[styles.menuTitle, { marginTop: 30 }]}>
-        📋 Alle Gerichte
-      </Text>
+          {selectedGericht && (
+            <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
+              <Text style={{ textAlign: 'center', color: colors.primary }}>
+                Abbrechen
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-      <TextInput
-        placeholder="Nach Namen suchen..."
-        value={search}
-        onChangeText={setSearch}
-        style={[styles.input, { marginTop: 10 }]}
-      />
+        <Text style={[styles.menuTitle, { marginTop: 30 }]}>
+          📋 Alle Gerichte
+        </Text>
 
-      <View style={{ marginTop: 10 }}>
-        {gefilterteGerichte.length === 0 ? (
-          <Text style={{ fontStyle: 'italic', color: 'gray' }}>
-            Keine Treffer
-          </Text>
-        ) : (
-          gefilterteGerichte.map((gericht) => (
-            <View
-              key={gericht.id}
-              style={[styles.menuCard, { marginBottom: 8 }]}
-            >
-              <Text style={{ fontWeight: 'bold' }}>{gericht.name}</Text>
-              <Text>{gericht.beschreibung}</Text>
+        <TextInput
+          placeholder="Nach Namen suchen..."
+          value={search}
+          onChangeText={setSearch}
+          style={[styles.input, { marginTop: 10 }]}
+        />
 
-              <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
-                <TouchableOpacity onPress={() => handleBearbeiten(gericht)}>
-                  <Text style={{ color: colors.primary }}>Bearbeiten</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleLöschen(gericht.id)}>
-                  <Text style={{ color: 'red' }}>Löschen</Text>
-                </TouchableOpacity>
+        <View style={{ marginTop: 10 }}>
+          {gefilterteGerichte.length === 0 ? (
+            <Text style={{ fontStyle: 'italic', color: 'gray' }}>
+              Keine Treffer
+            </Text>
+          ) : (
+            gefilterteGerichte.map((gericht) => (
+              <View
+                key={gericht.id}
+                style={[styles.menuCard, { marginBottom: 8 }]}
+              >
+                <Text style={{ fontWeight: 'bold' }}>{gericht.name}</Text>
+                <Text>{gericht.beschreibung}</Text>
+
+                <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
+                  <TouchableOpacity onPress={() => handleBearbeiten(gericht)}>
+                    <Text style={{ color: colors.primary }}>Bearbeiten</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleLöschen(gericht.id)}>
+                    <Text style={{ color: 'red' }}>Löschen</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))
-        )}
-      </View>
-    </ScrollView>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

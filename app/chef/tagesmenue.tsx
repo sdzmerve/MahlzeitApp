@@ -6,6 +6,8 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   Image,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -22,7 +24,8 @@ export default function TagesmenueScreen() {
 
   const [menues, setMenues] = useState<any[]>([]);
   const [tagesmenues, setTagesmenues] = useState<any[]>([]);
-
+  const [mensen, setMensen] = useState<any[]>([]);
+  const [selectedMensaId, setSelectedMensaId] = useState<number | null>(null);  
   const [selectedMenu, setSelectedMenu] = useState<any | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -30,6 +33,7 @@ export default function TagesmenueScreen() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
+    fetchMensen();
     fetchMenues();
     fetchTagesmenues();
   }, []);
@@ -44,13 +48,19 @@ export default function TagesmenueScreen() {
   const fetchTagesmenues = async () => {
     const { data } = await supabase
       .from('TagesMenue')
-      .select('*, Menue(Menue_id, Gericht(Gericht_Name))');
+      .select('*, Menue(Menue_id, Gericht(Gericht_Name)), Mensa(Mensa_name)');
     if (data) setTagesmenues(data);
   };
 
+  const fetchMensen = async () => {
+    const { data, error } = await supabase.from('Mensa').select('*');
+    if (data) setMensen(data);
+    else console.error('Fehler beim Laden der Mensen', error);
+  };
+
   const handleSpeichern = async () => {
-    if (!selectedMenu) {
-      Alert.alert('Fehler', 'Bitte Menü wählen.');
+    if (!selectedMenu || !selectedMensaId) {
+      Alert.alert('Fehler', 'Bitte Menü und Mensa wählen.');
       return;
     }
 
@@ -75,6 +85,7 @@ export default function TagesmenueScreen() {
       const { error } = await supabase.from('TagesMenue').insert({
         datum: formattedDate,
         Menue_id: selectedMenu.Menue_id,
+        Mensa_id: selectedMensaId,
       });
 
       if (error) Alert.alert('Fehler beim Speichern');
@@ -108,7 +119,15 @@ export default function TagesmenueScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={80}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* 🧭 Navbar */}
       <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
         <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
@@ -143,24 +162,55 @@ export default function TagesmenueScreen() {
       )}
 
       <View style={[styles.menuCard, { marginTop: 20 }]}>
+        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Mensa wählen:</Text>
+          <Picker
+            selectedValue={selectedMensaId}
+            onValueChange={(value) => setSelectedMensaId(value)}
+          >
+            <Picker.Item label="Bitte wählen..." value={null} />
+            {mensen.map((m) => (
+              <Picker.Item key={m.Mensa_id} label={m.Mensa_name} value={m.Mensa_id} />
+            ))}
+          </Picker>
+          
         <Text style={{ fontWeight: '600', marginBottom: 6 }}>Menü wählen:</Text>
-        <Picker
-          selectedValue={selectedMenu}
-          onValueChange={(value) => setSelectedMenu(value)}
-        >
-          <Picker.Item label="Bitte wählen..." value={null} />
-          {menues.map((m) => (
-            <Picker.Item
-              key={m.Menue_id}
-              label={m.Gericht?.Gericht_Name ?? 'Unbenannt'}
-              value={m}
-            />
-          ))}
-        </Picker>
+        <TextInput
+          placeholder="🔍 Menü suchen..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.input}
+        />
+
+        <ScrollView style={{ maxHeight: 200, marginBottom: 10 }}>
+          {menues
+            .filter((m) =>
+              m.Gericht?.Gericht_Name?.toLowerCase().includes(search.toLowerCase())
+            )
+            .map((m) => (
+              <TouchableOpacity
+                key={m.Menue_id}
+                onPress={() => setSelectedMenu(m)}
+                style={{
+                  padding: 10,
+                  backgroundColor: selectedMenu?.Menue_id === m.Menue_id ? colors.primary : '#eee',
+                  marginBottom: 6,
+                  borderRadius: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    color: selectedMenu?.Menue_id === m.Menue_id ? 'white' : 'black',
+                  }}
+                >
+                  {m.Gericht?.Gericht_Name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+        </ScrollView>
 
         <TouchableOpacity
           onPress={handleSpeichern}
-          style={[styles.menuCard, { backgroundColor: colors.primary, marginTop: 10 }]}
+          style={[styles.button, { backgroundColor: colors.primary, marginTop: 10 }]}
         >
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
             {selectedTagesmenue ? 'Speichern' : 'Anlegen'}
@@ -186,7 +236,7 @@ export default function TagesmenueScreen() {
       {gefiltert.map((t) => (
         <View key={t.Tagesmenue_id} style={[styles.menuCard, { marginBottom: 8 }]}>
           <Text style={{ fontWeight: 'bold' }}>
-            {format(new Date(t.datum), 'dd.MM.yyyy')} – {t.Menue?.Gericht?.Gericht_Name}
+            {format(new Date(t.datum), 'dd.MM.yyyy')} – {t.Menue?.Gericht?.Gericht_Name} ({t.Mensa?.Mensa_name})
           </Text>
           <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
             <TouchableOpacity onPress={() => handleBearbeiten(t)}>
@@ -199,5 +249,6 @@ export default function TagesmenueScreen() {
         </View>
       ))}
     </ScrollView>
+  </KeyboardAvoidingView>
   );
 }

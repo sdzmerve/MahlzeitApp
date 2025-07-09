@@ -1,4 +1,4 @@
-import { View, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, Platform, } from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -176,6 +176,15 @@ export default function HomeScreen() {
   };
 
   return (
+    <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={80}
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+            keyboardShouldPersistTaps="handled"
+          >
     <View style={styles.container}>
       {/* Standort Auswahl */}
       {showLocationSelector && (
@@ -265,5 +274,7 @@ export default function HomeScreen() {
         />
       )}
     </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

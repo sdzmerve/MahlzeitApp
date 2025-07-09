@@ -5,6 +5,8 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
   Image,
 } from 'react-native';
@@ -91,7 +93,15 @@ export default function ZutatenScreen() {
   );
   
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={80}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* 🧭 Navbar */}
       <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
         <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
@@ -117,7 +127,7 @@ export default function ZutatenScreen() {
 
         <TouchableOpacity
           onPress={handleSpeichern}
-          style={[styles.menuCard, { backgroundColor: colors.primary, marginTop: 10 }]}
+          style={[styles.button, { backgroundColor: colors.primary, marginTop: 10 }]}
         >
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
             {selectedZutat ? 'Speichern' : 'Anlegen'}
@@ -154,5 +164,6 @@ export default function ZutatenScreen() {
         </View>
       ))}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

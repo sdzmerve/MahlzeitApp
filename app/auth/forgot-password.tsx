@@ -7,6 +7,9 @@ import {
   Alert,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from "react-native";
 import { supabase } from "@/lib/supabaseClient";
 import { router } from "expo-router";
@@ -24,7 +27,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "myapp://reset-password", // z. B. deeplink oder Web-URL
+      redirectTo: "myapp://reset-password", // Beispiel-Redirect
     });
 
     setLoading(false);
@@ -36,44 +39,53 @@ export default function ForgotPasswordScreen() {
         "E-Mail gesendet",
         "Bitte prüfe dein Postfach. Du erhältst einen Link zum Zurücksetzen deines Passworts."
       );
-      router.back(); // zurück zur Login-Seite
+      router.back();
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🔐 Passwort vergessen</Text>
-      <Text style={styles.subtitle}>
-        Gib deine E-Mail-Adresse ein, um dein Passwort zurückzusetzen.
-      </Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="E-Mail-Adresse"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        onChangeText={setEmail}
-        value={email}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && { backgroundColor: "#aaa" }]}
-        onPress={handleResetPassword}
-        disabled={loading}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={80}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Zurücksetzen</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+        <Text style={styles.title}>🔐 Passwort vergessen</Text>
+        <Text style={styles.subtitle}>
+          Gib deine E-Mail-Adresse ein, um dein Passwort zurückzusetzen.
+        </Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="E-Mail-Adresse"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          onChangeText={setEmail}
+          value={email}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && { backgroundColor: "#aaa" }]}
+          onPress={handleResetPassword}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Zurücksetzen</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     padding: 24,
     backgroundColor: "#fff",
