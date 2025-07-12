@@ -1,6 +1,6 @@
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors } from '@/styles/colors'
-import { sharedStyles } from '@/styles/sharedStyles'
+import { colors } from '@/styles/colors';
+import { sharedStyles } from '@/styles/sharedStyles';
 
 type Props = {
   title: string;
@@ -9,6 +9,7 @@ type Props = {
   loading?: boolean;
 };
 
+// Wiederverwendbarer Button mit Ladezustand
 export default function Button({ title, onPress, disabled, loading }: Props) {
   return (
     <TouchableOpacity

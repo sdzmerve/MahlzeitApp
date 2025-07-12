@@ -24,6 +24,7 @@ export default function ZutatenScreen() {
   const [zutatName, setZutatName] = useState('');
   const [selectedZutat, setSelectedZutat] = useState<any | null>(null);
 
+  // Zutaten beim Laden holen
   useEffect(() => {
     fetchZutaten();
   }, []);
@@ -38,6 +39,7 @@ export default function ZutatenScreen() {
     setSelectedZutat(null);
   };
 
+  // Zutat speichern oder aktualisieren
   const handleSpeichern = async () => {
     if (!zutatName.trim()) {
       Alert.alert('Fehler', 'Name darf nicht leer sein.');
@@ -45,7 +47,7 @@ export default function ZutatenScreen() {
     }
 
     if (selectedZutat) {
-      // Bearbeiten
+      // Update
       const { error } = await supabase
         .from('Zutaten')
         .update({ Zutat_name: zutatName })
@@ -58,7 +60,7 @@ export default function ZutatenScreen() {
         fetchZutaten();
       }
     } else {
-      // Neu
+      // Insert
       const { error } = await supabase.from('Zutaten').insert({ Zutat_name: zutatName });
       if (error) Alert.alert('Fehler beim Speichern');
       else {
@@ -91,7 +93,7 @@ export default function ZutatenScreen() {
   const gefiltert = zutaten.filter((z) =>
     z.Zutat_name.toLowerCase().includes(search.toLowerCase())
   );
-  
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -99,71 +101,79 @@ export default function ZutatenScreen() {
       keyboardVerticalOffset={80}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: 48,
+          paddingHorizontal: 20,
+          paddingBottom: 50,
+          backgroundColor: colors.background,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-      {/* 🧭 Navbar */}
-      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
-        <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
-          <Image source={require('@/assets/icon.png')} style={styles.logo} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }} />
-      </View>
+        {/* Navigation */}
+        <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
+          <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
+            <Image source={require('@/assets/icon.png')} style={styles.logo} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+        </View>
 
-      <Text style={styles.menuTitle}>
-        {selectedZutat ? '✏️ Zutat bearbeiten' : '➕ Neue Zutat'}
-      </Text>
+        <Text style={styles.menuTitle}>
+          {selectedZutat ? '✏️ Zutat bearbeiten' : '➕ Neue Zutat'}
+        </Text>
 
-      <View style={[styles.menuCard, { marginTop: 20 }]}>
+        {/* Eingabeformular */}
+        <View style={[styles.menuCard, { marginTop: 20 }]}>
+          <TextInput
+            placeholder="Zutat"
+            value={zutatName}
+            onChangeText={setZutatName}
+            style={styles.input}
+          />
+
+          <TouchableOpacity
+            onPress={handleSpeichern}
+            style={[styles.button, { backgroundColor: colors.primary, marginTop: 10 }]}
+          >
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
+              {selectedZutat ? 'Speichern' : 'Anlegen'}
+            </Text>
+          </TouchableOpacity>
+
+          {selectedZutat && (
+            <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
+              <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Zutatenliste mit Suche */}
+        <Text style={[styles.menuTitle, { marginTop: 30 }]}>🧂 Zutatenliste</Text>
+
         <TextInput
-          placeholder="Zutat"
-          value={zutatName}
-          onChangeText={setZutatName}
-          style={styles.input}
+          placeholder="Suchen..."
+          value={search}
+          onChangeText={setSearch}
+          style={[styles.input, { marginTop: 10 }]}
         />
 
-        <TouchableOpacity
-          onPress={handleSpeichern}
-          style={[styles.button, { backgroundColor: colors.primary, marginTop: 10 }]}
-        >
-          <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
-            {selectedZutat ? 'Speichern' : 'Anlegen'}
-          </Text>
-        </TouchableOpacity>
-
-        {selectedZutat && (
-          <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
-            <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <Text style={[styles.menuTitle, { marginTop: 30 }]}>🧂 Zutatenliste</Text>
-
-      <TextInput
-        placeholder="Suchen..."
-        value={search}
-        onChangeText={setSearch}
-        style={[styles.input, { marginTop: 10 }]}
-      />
-
-      {gefiltert.map((z) => (
-        <View key={z.Zutat_id} style={[styles.menuCard, { marginBottom: 8 }]}>
-          <Text>{z.Zutat_name}</Text>
-          <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
-            <TouchableOpacity onPress={() => handleBearbeiten(z)}>
-              <Text style={{ color: colors.primary }}>Bearbeiten</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleLöschen(z.Zutat_id)}>
-              <Text style={{ color: 'red' }}>Löschen</Text>
-            </TouchableOpacity>
+        {gefiltert.map((z) => (
+          <View key={z.Zutat_id} style={[styles.menuCard, { marginBottom: 8 }]}>
+            <Text>{z.Zutat_name}</Text>
+            <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
+              <TouchableOpacity onPress={() => handleBearbeiten(z)}>
+                <Text style={{ color: colors.primary }}>Bearbeiten</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleLöschen(z.Zutat_id)}>
+                <Text style={{ color: 'red' }}>Löschen</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      ))}
-    </ScrollView>
+        ))}
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

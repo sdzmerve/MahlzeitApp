@@ -24,6 +24,7 @@ export default function MenuErstellenScreen() {
   const [isVegan, setIsVegan] = useState(false);
   const [hasSalat, setHasSalat] = useState(false);
 
+  // Gerichte beim ersten Laden holen
   useEffect(() => {
     fetchGerichte();
   }, []);
@@ -40,9 +41,10 @@ export default function MenuErstellenScreen() {
     );
   };
 
+  // Menü speichern
   const handleSaveMenu = async () => {
     if (selectedGerichteIds.length === 0) {
-      Alert.alert('Fehler');
+      Alert.alert('Fehler', 'Bitte mindestens ein Gericht auswählen.');
       return;
     }
 
@@ -75,6 +77,7 @@ export default function MenuErstellenScreen() {
         contentContainerStyle={{ flexGrow: 1, padding: 20, backgroundColor: colors.background }}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Navigation */}
         <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
           <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
@@ -87,6 +90,7 @@ export default function MenuErstellenScreen() {
 
         <Text style={styles.menuTitle}>📅 Menü erstellen</Text>
 
+        {/* Optionen: vegan / mit Salat */}
         <View style={[styles.menuCard, { marginTop: 20 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 10, gap: 20 }}>
             <TouchableOpacity onPress={() => setIsVegan(!isVegan)}>
@@ -97,6 +101,7 @@ export default function MenuErstellenScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Gerichtauswahl */}
           <Text style={[styles.menuTitle, { marginTop: 20 }]}>🍽️ Gerichte wählen</Text>
           {gerichte.map((g) => (
             <TouchableOpacity
@@ -115,6 +120,7 @@ export default function MenuErstellenScreen() {
             </TouchableOpacity>
           ))}
 
+          {/* Speichern-Button */}
           <TouchableOpacity
             onPress={handleSaveMenu}
             style={[styles.button, { backgroundColor: colors.primary, marginTop: 20 }]}

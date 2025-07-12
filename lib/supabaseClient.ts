@@ -2,10 +2,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Diese Werte musst du in .env-Dateien definieren (siehe unten)
+// 🔑 Supabase-Zugangsdaten aus Umgebungsvariablen
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+// 🔌 Supabase-Client erstellen und exportieren
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-

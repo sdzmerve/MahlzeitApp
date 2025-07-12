@@ -26,14 +26,14 @@ export default function GerichtZutatenScreen() {
   const [zutatenZuweisung, setZutatenZuweisung] = useState<{ id: number; menge: string; einheit: string }[]>([]);
   const [zuweisungen, setZuweisungen] = useState<any[]>([]);
 
+  // Daten laden beim Start
   useEffect(() => {
     fetchData();
   }, []);
 
+  // Zutatenzuweisungen laden, wenn Gericht ausgewählt wurde
   useEffect(() => {
-    if (selectedGerichtId) {
-      fetchZugewieseneZutaten(selectedGerichtId);
-    }
+    if (selectedGerichtId) fetchZugewieseneZutaten(selectedGerichtId);
   }, [selectedGerichtId]);
 
   const fetchData = async () => {
@@ -60,6 +60,7 @@ export default function GerichtZutatenScreen() {
     );
   };
 
+  // Neue Zutaten-Zuweisungen speichern
   const handleZuweisung = async () => {
     if (!selectedGerichtId || zutatenZuweisung.length === 0) {
       Alert.alert('Fehler', 'Bitte Gericht und mindestens eine Zutat wählen.');
@@ -81,7 +82,6 @@ export default function GerichtZutatenScreen() {
 
     const { error } = await supabase.from('GerichtZutaten').insert(payload);
     if (error) {
-      console.error(error);
       Alert.alert('Fehler', 'Zuweisung fehlgeschlagen.');
     } else {
       Alert.alert('Erfolg', 'Zutaten erfolgreich zugewiesen.');
@@ -90,6 +90,7 @@ export default function GerichtZutatenScreen() {
     }
   };
 
+  // Einzelne Zutat-Zuweisung löschen
   const handleLöschen = async (zutatenId: number) => {
     if (!selectedGerichtId) return;
 
@@ -99,9 +100,7 @@ export default function GerichtZutatenScreen() {
       .eq('Gericht_id', selectedGerichtId)
       .eq('Zutaten_id', zutatenId);
 
-    if (!error) {
-      fetchZugewieseneZutaten(selectedGerichtId);
-    }
+    if (!error) fetchZugewieseneZutaten(selectedGerichtId);
   };
 
   return (
@@ -111,10 +110,16 @@ export default function GerichtZutatenScreen() {
       keyboardVerticalOffset={80}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: 48,
+          paddingHorizontal: 20,
+          paddingBottom: 50,
+          backgroundColor: colors.background,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Navbar */}
+        {/* Navigation */}
         <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
           <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
@@ -127,6 +132,7 @@ export default function GerichtZutatenScreen() {
 
         <Text style={styles.menuTitle}>🥣 Zutaten zu Gericht zuweisen</Text>
 
+        {/* Gericht-Auswahl & Zutat-Zuweisung */}
         <View style={[styles.menuCard, { marginTop: 20 }]}>
           <Text style={{ fontWeight: '600', marginBottom: 6 }}>Gericht wählen:</Text>
           <Picker
@@ -197,6 +203,7 @@ export default function GerichtZutatenScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Bereits zugewiesene Zutaten */}
         {zuweisungen.length > 0 && (
           <View style={{ marginTop: 30 }}>
             <Text style={[styles.menuTitle, { marginBottom: 10 }]}>📋 Zugewiesene Zutaten</Text>

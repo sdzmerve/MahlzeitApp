@@ -24,6 +24,7 @@ export default function RegisterScreen() {
   const [passwordRepeat, setPasswordRepeat] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Rolle anhand E-Mail-Adresse bestimmen
   const determineRoleFromEmail = (email: string): string => {
     const lower = email.toLowerCase();
     if (lower.endsWith('@student.dhbw-mannheim.de')) return 'student';
@@ -32,11 +33,13 @@ export default function RegisterScreen() {
     return 'gast';
   };
 
+  // Simple E-Mail-Validierung
   const isValidEmail = (email: string): boolean => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email.toLowerCase());
   };
 
+  // Registrierung mit Validierung
   const handleRegister = async () => {
     if (!email || !password || !passwordRepeat) {
       Alert.alert('Fehler', 'Bitte fülle alle Felder aus.');
@@ -62,7 +65,7 @@ export default function RegisterScreen() {
     try {
       await register(email, password);
       Alert.alert('Erfolg', 'Bitte bestätige deine E-Mail.');
-      router.replace('/auth');
+      router.replace('/auth'); // Zurück zur Login-Seite
     } catch (error: any) {
       Alert.alert('Registrierung fehlgeschlagen', error.message);
     } finally {

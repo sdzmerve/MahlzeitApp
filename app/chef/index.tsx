@@ -10,6 +10,7 @@ export default function KochDashboard() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
 
+  // Rollenprüfung beim Laden
   useEffect(() => {
     const checkRole = async () => {
       const { data: user } = await supabase.auth.getUser();
@@ -33,7 +34,7 @@ export default function KochDashboard() {
     checkRole();
   }, []);
 
-  if (!allowed) return null; 
+  if (!allowed) return null; // Noch keine Berechtigung → nichts anzeigen
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -49,7 +50,7 @@ export default function KochDashboard() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* 🧭 Navbar */}
+      {/* Navigation */}
       <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
         <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
@@ -62,6 +63,7 @@ export default function KochDashboard() {
 
       <Text style={styles.menuTitle}>👨‍🍳 Koch-Dashboard</Text>
 
+      {/* Menüoptionen */}
       <View style={{ gap: 12, marginTop: 24 }}>
         <TouchableOpacity
           onPress={() => router.push('/chef/gerichte')}

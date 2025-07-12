@@ -3,6 +3,7 @@ import { colors } from '@/styles/colors';
 
 type Props = TextInputProps;
 
+// Wiederverwendbares Texteingabefeld
 export default function Input(props: Props) {
   return <TextInput style={[styles.input, props.style]} {...props} />;
 }

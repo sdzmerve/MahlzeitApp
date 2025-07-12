@@ -27,7 +27,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "myapp://reset-password", // Beispiel-Redirect
+      redirectTo: "myapp://reset-password", // Ziel-URL nach Klick auf E-Mail-Link
     });
 
     setLoading(false);
@@ -83,6 +83,7 @@ export default function ForgotPasswordScreen() {
   );
 }
 
+// Basis-Styling
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,

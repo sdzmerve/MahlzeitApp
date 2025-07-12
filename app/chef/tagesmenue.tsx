@@ -25,6 +25,7 @@ export default function TagesmenueScreen() {
   const [menues, setMenues] = useState<any[]>([]);
   const [tagesmenues, setTagesmenues] = useState<any[]>([]);
   const [mensen, setMensen] = useState<any[]>([]);
+
   const [selectedMensaId, setSelectedMensaId] = useState<number | null>(null);  
   const [selectedMenu, setSelectedMenu] = useState<any | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -38,10 +39,9 @@ export default function TagesmenueScreen() {
     fetchTagesmenues();
   }, []);
 
+  // Daten aus der DB laden
   const fetchMenues = async () => {
-    const { data } = await supabase
-      .from('Menue')
-      .select('*, Gericht(Gericht_Name)');
+    const { data } = await supabase.from('Menue').select('*, Gericht(Gericht_Name)');
     if (data) setMenues(data);
   };
 
@@ -58,6 +58,7 @@ export default function TagesmenueScreen() {
     else console.error('Fehler beim Laden der Mensen', error);
   };
 
+  // Tagesmenü speichern oder aktualisieren
   const handleSpeichern = async () => {
     if (!selectedMenu || !selectedMensaId) {
       Alert.alert('Fehler', 'Bitte Menü und Mensa wählen.');
@@ -67,6 +68,7 @@ export default function TagesmenueScreen() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
 
     if (selectedTagesmenue) {
+      // Bearbeiten
       const { error } = await supabase
         .from('TagesMenue')
         .update({
@@ -82,6 +84,7 @@ export default function TagesmenueScreen() {
         fetchTagesmenues();
       }
     } else {
+      // Neu erstellen
       const { error } = await supabase.from('TagesMenue').insert({
         datum: formattedDate,
         Menue_id: selectedMenu.Menue_id,
@@ -125,44 +128,52 @@ export default function TagesmenueScreen() {
       keyboardVerticalOffset={80}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: 48,
+          paddingHorizontal: 20,
+          paddingBottom: 50,
+          backgroundColor: colors.background,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-      {/* 🧭 Navbar */}
-      <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
-        <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
-          <Image source={require('@/assets/icon.png')} style={styles.logo} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }} />
-      </View>
+        {/* Navigation */}
+        <View style={[styles.navBar, { justifyContent: 'space-between', alignItems: 'center', gap: 20 }]}>
+          <TouchableOpacity onPress={() => router.replace('/chef')} style={{ flex: 1 }}>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1, alignItems: 'center' }}>
+            <Image source={require('@/assets/icon.png')} style={styles.logo} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+        </View>
 
-      <Text style={styles.menuTitle}>
-        {selectedTagesmenue ? '✏️ Tagesmenü bearbeiten' : '➕ Tagesmenü erstellen'}
-      </Text>
-
-      <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.dateText}>
-          📅 {format(selectedDate, 'EEEE, dd.MM.yyyy')}
+        <Text style={styles.menuTitle}>
+          {selectedTagesmenue ? '✏️ Tagesmenü bearbeiten' : '➕ Tagesmenü erstellen'}
         </Text>
-      </TouchableOpacity>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display="default"
-          onChange={(_, date) => {
-            setShowDatePicker(false);
-            if (date) setSelectedDate(date);
-          }}
-        />
-      )}
+        {/* Datumsauswahl */}
+        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+          <Text style={styles.dateText}>
+            📅 {format(selectedDate, 'EEEE, dd.MM.yyyy')}
+          </Text>
+        </TouchableOpacity>
 
-      <View style={[styles.menuCard, { marginTop: 20 }]}>
-        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Mensa wählen:</Text>
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={(_, date) => {
+              setShowDatePicker(false);
+              if (date) setSelectedDate(date);
+            }}
+          />
+        )}
+
+        {/* Formularfeld: Mensa + Menü auswählen */}
+        <View style={[styles.menuCard, { marginTop: 20 }]}>
+          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Mensa wählen:</Text>
           <Picker
             selectedValue={selectedMensaId}
             onValueChange={(value) => setSelectedMensaId(value)}
@@ -172,83 +183,86 @@ export default function TagesmenueScreen() {
               <Picker.Item key={m.Mensa_id} label={m.Mensa_name} value={m.Mensa_id} />
             ))}
           </Picker>
-          
-        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Menü wählen:</Text>
-        <TextInput
-          placeholder="🔍 Menü suchen..."
-          value={search}
-          onChangeText={setSearch}
-          style={styles.input}
-        />
 
-        <ScrollView style={{ maxHeight: 200, marginBottom: 10 }}>
-          {menues
-            .filter((m) =>
-              m.Gericht?.Gericht_Name?.toLowerCase().includes(search.toLowerCase())
-            )
-            .map((m) => (
-              <TouchableOpacity
-                key={m.Menue_id}
-                onPress={() => setSelectedMenu(m)}
-                style={{
-                  padding: 10,
-                  backgroundColor: selectedMenu?.Menue_id === m.Menue_id ? colors.primary : '#eee',
-                  marginBottom: 6,
-                  borderRadius: 6,
-                }}
-              >
-                <Text
+          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Menü wählen:</Text>
+          <TextInput
+            placeholder="🔍 Menü suchen..."
+            value={search}
+            onChangeText={setSearch}
+            style={styles.input}
+          />
+
+          {/* Menüauswahl-Liste */}
+          <ScrollView style={{ maxHeight: 200, marginBottom: 10 }}>
+            {menues
+              .filter((m) =>
+                m.Gericht?.Gericht_Name?.toLowerCase().includes(search.toLowerCase())
+              )
+              .map((m) => (
+                <TouchableOpacity
+                  key={m.Menue_id}
+                  onPress={() => setSelectedMenu(m)}
                   style={{
-                    color: selectedMenu?.Menue_id === m.Menue_id ? 'white' : 'black',
+                    padding: 10,
+                    backgroundColor: selectedMenu?.Menue_id === m.Menue_id ? colors.primary : '#eee',
+                    marginBottom: 6,
+                    borderRadius: 6,
                   }}
                 >
-                  {m.Gericht?.Gericht_Name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-        </ScrollView>
+                  <Text
+                    style={{
+                      color: selectedMenu?.Menue_id === m.Menue_id ? 'white' : 'black',
+                    }}
+                  >
+                    {m.Gericht?.Gericht_Name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
 
-        <TouchableOpacity
-          onPress={handleSpeichern}
-          style={[styles.button, { backgroundColor: colors.primary, marginTop: 10 }]}
-        >
-          <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
-            {selectedTagesmenue ? 'Speichern' : 'Anlegen'}
-          </Text>
-        </TouchableOpacity>
-
-        {selectedTagesmenue && (
-          <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
-            <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
+          {/* Speichern */}
+          <TouchableOpacity
+            onPress={handleSpeichern}
+            style={[styles.button, { backgroundColor: colors.primary, marginTop: 10 }]}
+          >
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
+              {selectedTagesmenue ? 'Speichern' : 'Anlegen'}
+            </Text>
           </TouchableOpacity>
-        )}
-      </View>
 
-      <Text style={[styles.menuTitle, { marginTop: 30 }]}>📋 Alle Tagesmenüs</Text>
-
-      <TextInput
-        placeholder="Nach Gericht suchen..."
-        value={search}
-        onChangeText={setSearch}
-        style={[styles.input, { marginTop: 10 }]}
-      />
-
-      {gefiltert.map((t) => (
-        <View key={t.Tagesmenue_id} style={[styles.menuCard, { marginBottom: 8 }]}>
-          <Text style={{ fontWeight: 'bold' }}>
-            {format(new Date(t.datum), 'dd.MM.yyyy')} – {t.Menue?.Gericht?.Gericht_Name} ({t.Mensa?.Mensa_name})
-          </Text>
-          <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
-            <TouchableOpacity onPress={() => handleBearbeiten(t)}>
-              <Text style={{ color: colors.primary }}>Bearbeiten</Text>
+          {selectedTagesmenue && (
+            <TouchableOpacity onPress={resetForm} style={{ marginTop: 10 }}>
+              <Text style={{ textAlign: 'center', color: colors.primary }}>Abbrechen</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleLöschen(t.Tagesmenue_id)}>
-              <Text style={{ color: 'red' }}>Löschen</Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </View>
-      ))}
-    </ScrollView>
-  </KeyboardAvoidingView>
+
+        {/* Bestehende Einträge */}
+        <Text style={[styles.menuTitle, { marginTop: 30 }]}>📋 Alle Tagesmenüs</Text>
+
+        <TextInput
+          placeholder="Nach Gericht suchen..."
+          value={search}
+          onChangeText={setSearch}
+          style={[styles.input, { marginTop: 10 }]}
+        />
+
+        {gefiltert.map((t) => (
+          <View key={t.Tagesmenue_id} style={[styles.menuCard, { marginBottom: 8 }]}>
+            <Text style={{ fontWeight: 'bold' }}>
+              {format(new Date(t.datum), 'dd.MM.yyyy')} – {t.Menue?.Gericht?.Gericht_Name} ({t.Mensa?.Mensa_name})
+            </Text>
+            <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
+              <TouchableOpacity onPress={() => handleBearbeiten(t)}>
+                <Text style={{ color: colors.primary }}>Bearbeiten</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleLöschen(t.Tagesmenue_id)}>
+                <Text style={{ color: 'red' }}>Löschen</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

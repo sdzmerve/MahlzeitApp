@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { colors } from '@/styles/colors';
 
 type Props = {
-  initialRating?: number;
-  onRate?: (rating: number) => void;
-  editable?: boolean;
+  initialRating?: number;         // Startbewertung (optional)
+  onRate?: (rating: number) => void; // Callback bei Bewertung
+  editable?: boolean;             // Ob Bewertung geändert werden darf
 };
 
+// ⭐ Komponente zur Anzeige und Eingabe von Sternebewertungen
 export default function StarRatingInput({ initialRating = 0, onRate, editable = true }: Props) {
   const [rating, setRating] = useState(initialRating);
 

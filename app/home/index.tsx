@@ -1,4 +1,15 @@
-import { View, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, Platform, } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,11 +43,10 @@ export default function HomeScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string>('Gast');
 
+  // User-Infos und Rolle laden
   useEffect(() => {
     const getUserInfo = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
         const role = await getUserRole(user.id);
@@ -46,23 +56,20 @@ export default function HomeScreen() {
     getUserInfo();
   }, []);
 
+  // Logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/auth');
   };
 
   const handleLogoutPrompt = () => {
-    Alert.alert(
-      'Abmelden',
-      'Möchtest du dich wirklich abmelden?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
-      ],
-      { cancelable: true }
-    );
+    Alert.alert('Abmelden', 'Möchtest du dich wirklich abmelden?', [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Ausloggen', style: 'destructive', onPress: handleLogout },
+    ]);
   };
 
+  // Mensen laden
   useEffect(() => {
     const fetchMensen = async () => {
       const { data } = await supabase.from('Mensa').select('Mensa_id, Mensa_name');
@@ -75,6 +82,7 @@ export default function HomeScreen() {
     fetchMensen();
   }, []);
 
+  // Nutzer-Hauptmensa aktualisieren
   useEffect(() => {
     const updateUserMensa = async () => {
       if (!selectedMensa || !userId) return;
@@ -83,13 +91,18 @@ export default function HomeScreen() {
         .select('Hauptmensa')
         .eq('user_id', userId)
         .single();
+
       if (!existingUser?.Hauptmensa || existingUser.Hauptmensa !== selectedMensa.name) {
-        await supabase.from('"User"').update({ Hauptmensa: selectedMensa.name }).eq('user_id', userId);
+        await supabase
+          .from('"User"')
+          .update({ Hauptmensa: selectedMensa.name })
+          .eq('user_id', userId);
       }
     };
     updateUserMensa();
   }, [selectedMensa, userId]);
 
+  // Menüs laden
   const fetchMenus = async () => {
     setLoadingMenus(true);
     if (!selectedMensa || !userId) {
@@ -154,127 +167,122 @@ export default function HomeScreen() {
       Alert.alert('Fehler', 'Du musst eingeloggt sein.');
       return;
     }
+
     const { data: existing } = await supabase
       .from('MenueBewertung')
       .select('*')
       .eq('user_id', userId)
       .eq('Menue_id', menuId);
+
     if (existing && existing.length > 0) {
       Alert.alert('Schon bewertet', 'Du hast dieses Menü bereits bewertet.');
       return;
     }
 
     await supabase.from('MenueBewertung').insert([
-      {
-        Menue_id: menuId,
-        Rating: rating,
-        user_id: userId,
-        Kommentar: '',
-      },
+      { Menue_id: menuId, Rating: rating, user_id: userId, Kommentar: '' },
     ]);
     fetchMenus();
   };
 
   return (
     <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={80}
-        >
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
-            keyboardShouldPersistTaps="handled"
-          >
-    <View style={styles.container}>
-      {/* Standort Auswahl */}
-      {showLocationSelector && (
-        <View style={styles.locationSelector}>
-          <Text style={styles.locationTitle}>Standort auswählen</Text>
-          {mensen.map((m) => (
-            <TouchableOpacity
-              key={m.id}
-              onPress={() => {
-                setSelectedMensa(m);
-                setShowLocationSelector(false);
-              }}
-            >
-              <Text style={styles.locationOption}>{m.name}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity onPress={() => setShowLocationSelector(false)}>
-            <Text style={styles.locationCancel}>Abbrechen</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Header */}
-      <View style={styles.navBar}>
-        <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
-          <Ionicons name="location-outline" size={26} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
-          <Image source={require('@/assets/icon.png')} style={styles.logo} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogoutPrompt}>
-          <Ionicons name="log-out-outline" size={26} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {role === 'Koch' && (
-        <TouchableOpacity
-          style={[styles.button, { alignSelf: 'center', marginBottom: 10 }]}
-          onPress={() => router.push('/chef')}
-        >
-          <Text style={styles.buttonText}>👨‍🍳 Zum Koch-Dashboard</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Datumsauswahl */}
-      <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.dateText}>{format(selectedDate, 'EEEE, dd.MM.yyyy')}</Text>
-      </TouchableOpacity>
-      {showDatePicker && (
-        <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onChangeDate} />
-      )}
-
-      {loadingMenus ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
-      ) : (
-        <FlatList
-          data={menus}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.menuList}
-          renderItem={({ item }) => (
-            <View style={styles.menuCard}>
-              <Text style={styles.menuTitle}>
-                {item.title} {item.isVegan ? '🌱' : ''}
-              </Text>
-              <Text style={styles.menuDescription}>{item.description}</Text>
-
-              <View style={styles.ratingRow}>
-                <Text style={{ fontWeight: 'bold', marginRight: 4 }}>Ø {item.average_rating.toFixed(1)}</Text>
-                <StarRatingInput initialRating={item.average_rating} editable={false} />
-              </View>
-
-              {item.alreadyRated ? (
-                <Text style={styles.ratedText}>Du hast bereits bewertet</Text>
-              ) : (
-                <View>
-                  <Text style={styles.ratePrompt}>Jetzt bewerten:</Text>
-                  <StarRatingInput onRate={(val) => submitRating(parseInt(item.id), val)} />
-                </View>
-              )}
-              {role !== 'Koch' && (
-                <View style={styles.priceBadge}>
-                  <Text style={styles.priceText}>{item.price?.toFixed(2)} €</Text>
-                </View>
-              )}
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={80}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 50, backgroundColor: colors.background }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.container}>
+          {/* Standortauswahl */}
+          {showLocationSelector && (
+            <View style={styles.locationSelector}>
+              <Text style={styles.locationTitle}>Standort auswählen</Text>
+              {mensen.map((m) => (
+                <TouchableOpacity key={m.id} onPress={() => {
+                  setSelectedMensa(m);
+                  setShowLocationSelector(false);
+                }}>
+                  <Text style={styles.locationOption}>{m.name}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity onPress={() => setShowLocationSelector(false)}>
+                <Text style={styles.locationCancel}>Abbrechen</Text>
+              </TouchableOpacity>
             </View>
           )}
-        />
-      )}
-    </View>
-    </ScrollView>
+
+          {/* Header */}
+          <View style={styles.navBar}>
+            <TouchableOpacity onPress={() => setShowLocationSelector(true)}>
+              <Ionicons name="location-outline" size={26} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
+              <Image source={require('@/assets/icon.png')} style={styles.logo} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogoutPrompt}>
+              <Ionicons name="log-out-outline" size={26} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Koch-Dashboard für Koch-Rolle */}
+          {role === 'Koch' && (
+            <TouchableOpacity
+              style={[styles.button, { alignSelf: 'center', marginBottom: 10 }]}
+              onPress={() => router.push('/chef')}
+            >
+              <Text style={styles.buttonText}>👨‍🍳 Zum Koch-Dashboard</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Datumsauswahl */}
+          <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateText}>{format(selectedDate, 'EEEE, dd.MM.yyyy')}</Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onChangeDate} />
+          )}
+
+          {/* Menüliste */}
+          {loadingMenus ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
+          ) : (
+            <FlatList
+              data={menus}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.menuList}
+              renderItem={({ item }) => (
+                <View style={styles.menuCard}>
+                  <Text style={styles.menuTitle}>{item.title} {item.isVegan ? '🌱' : ''}</Text>
+                  <Text style={styles.menuDescription}>{item.description}</Text>
+
+                  <View style={styles.ratingRow}>
+                    <Text style={{ fontWeight: 'bold', marginRight: 4 }}>Ø {item.average_rating.toFixed(1)}</Text>
+                    <StarRatingInput initialRating={item.average_rating} editable={false} />
+                  </View>
+
+                  {item.alreadyRated ? (
+                    <Text style={styles.ratedText}>Du hast bereits bewertet</Text>
+                  ) : (
+                    <View>
+                      <Text style={styles.ratePrompt}>Jetzt bewerten:</Text>
+                      <StarRatingInput onRate={(val) => submitRating(parseInt(item.id), val)} />
+                    </View>
+                  )}
+
+                  {role !== 'Koch' && (
+                    <View style={styles.priceBadge}>
+                      <Text style={styles.priceText}>{item.price?.toFixed(2)} €</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            />
+          )}
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
